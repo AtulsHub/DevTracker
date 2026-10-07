@@ -383,7 +383,7 @@ export default function TeamsPage({ initialUserTeams = [], initialPublicTeams = 
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ margin: "0 0 1.5rem", fontSize: "1.25rem", fontWeight: 600" }}>Create New Team</h2>
+            <h2 style={{ margin: "0 0 1.5rem", fontSize: "1.25rem", fontWeight: 600 }}>Create New Team</h2>
 
             <form onSubmit={handleCreateTeam} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
@@ -473,7 +473,7 @@ export default function TeamsPage({ initialUserTeams = [], initialPublicTeams = 
                 </label>
                 <select
                   value={createForm.visibility}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, visibility: e.target.value as any }))}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, visibility: e.target.value as "PUBLIC" | "PRIVATE" | "SECRET" }))}
                   style={{
                     width: "100%",
                     padding: "10px 12px",
@@ -497,7 +497,7 @@ export default function TeamsPage({ initialUserTeams = [], initialPublicTeams = 
                 </label>
                 <select
                   value={createForm.memberVisibilityPolicy}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, memberVisibilityPolicy: e.target.value as any }))}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, memberVisibilityPolicy: e.target.value as "EVERYONE" | "FOLLOWERS" | "TEAM" | "ME" }))}
                   style={{
                     width: "100%",
                     padding: "10px 12px",

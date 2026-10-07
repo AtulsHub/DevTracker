@@ -156,7 +156,7 @@ export const codeforcesAdapter: PlatformAdapter = {
     // Seen problem IDs to deduplicate "first accepted" per problem
     const seenAccepted = new Set<string>();
 
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       await sleep(REQUEST_DELAY_MS);
 

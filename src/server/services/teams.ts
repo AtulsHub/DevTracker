@@ -298,7 +298,7 @@ export async function updateMemberRole(
   }
 
   // Cannot promote to OWNER
-  if (newRole === "OWNER") {
+  if (newRole === "OWNER" as unknown as "ADMIN" | "MODERATOR" | "MEMBER") {
     throw new Error("Cannot promote to owner");
   }
 

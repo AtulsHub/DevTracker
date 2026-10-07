@@ -119,26 +119,23 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   // Fetch heatmap data (if visible)
-  const heatmapData: Array<{ date: string; count: number }> = fieldVisibility.heatmap
-    ? (() => {
-        const endDate = new Date();
-        const startDate = subDays(endDate, 364);
-        const activities = await db.query.dailyActivity.findMany({
-          where: and(
-            eq(dailyActivity.userId, owner.id),
-            gte(dailyActivity.date, startDate.toISOString().split("T")[0]!),
-            lte(dailyActivity.date, endDate.toISOString().split("T")[0]!)
-          ),
-        });
-        const activityMap = new Map(activities.map((a) => [a.date, a.solvedCount]));
-        const result: Array<{ date: string; count: number }> = [];
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          const dateStr = d.toISOString().split("T")[0]!;
-          result.push({ date: dateStr, count: activityMap.get(dateStr) ?? 0 });
-        }
-        return result;
-      })()
-    : [];
+  const heatmapData: Array<{ date: string; count: number }> = [];
+  if (fieldVisibility.heatmap) {
+    const endDate = new Date();
+    const startDate = subDays(endDate, 364);
+    const activities = await db.query.dailyActivity.findMany({
+      where: and(
+        eq(dailyActivity.userId, owner.id),
+        gte(dailyActivity.date, startDate.toISOString().split("T")[0]!),
+        lte(dailyActivity.date, endDate.toISOString().split("T")[0]!)
+      ),
+    });
+    const activityMap = new Map(activities.map((a) => [a.date, a.solvedCount]));
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split("T")[0]!;
+      heatmapData.push({ date: dateStr, count: activityMap.get(dateStr) ?? 0 });
+    }
+  }
 
   // Fetch streak (if heatmap visible)
   let streak = 0;
