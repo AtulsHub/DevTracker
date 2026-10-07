@@ -1,0 +1,23 @@
+{
+  "status": "OK",
+  "result": [
+    {
+      "lastName": "Korotkevich",
+      "country": "Belarus",
+      "lastOnlineTimeSeconds": 1700000000,
+      "city": "Gomel",
+      "rating": 3959,
+      "friendOfCount": 50000,
+      "titlePhoto": "https://userpic.codeforces.org/422/title/abc.jpg",
+      "handle": "tourist",
+      "avatar": "https://userpic.codeforces.org/422/avatar/abc.jpg",
+      "firstName": "Gennady",
+      "contribution": 150,
+      "organization": "ITMO University",
+      "rank": "tourist",
+      "maxRating": 4014,
+      "registrationTimeSeconds": 1265987288,
+      "maxRank": "tourist"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test --coverage
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_CI }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+
+  build:
+    name: Build (Vercel preview)
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_CI }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          APP_URL: https://devtrack.vercel.app
+
+  # ── Required GitHub secrets / variables ────────────────────────────────────
+  # Go to: Repository → Settings → Secrets and variables → Actions
+  #
+  # Secrets (encrypted):
+  #   DATABASE_URL_CI       — Neon pooled URL for CI (create a separate Neon branch)
+  #   AUTH_SECRET           — random 32+ char string (openssl rand -base64 32)
+  #   NEON_API_KEY          — from https://console.neon.tech/app/settings/api-keys
+  #
+  # Variables (plain text):
+  #   NEON_PROJECT_ID       — from your Neon project settings

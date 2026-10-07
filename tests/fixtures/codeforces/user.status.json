@@ -1,0 +1,59 @@
+{
+  "status": "OK",
+  "result": [
+    {
+      "id": 234567890,
+      "contestId": 4,
+      "creationTimeSeconds": 1700000000,
+      "relativeTimeSeconds": 2147483647,
+      "problem": {
+        "contestId": 4,
+        "index": "A",
+        "name": "Watermelon",
+        "type": "PROGRAMMING",
+        "rating": 800,
+        "tags": ["brute force", "math"]
+      },
+      "author": {
+        "contestId": 4,
+        "members": [{"handle": "tourist"}],
+        "participantType": "PRACTICE",
+        "ghost": false,
+        "startTimeSeconds": 1266580800
+      },
+      "programmingLanguage": "GNU C++17",
+      "verdict": "OK",
+      "testset": "TESTS",
+      "passedTestCount": 20,
+      "timeConsumedMillis": 15,
+      "memoryConsumedBytes": 0
+    },
+    {
+      "id": 234567891,
+      "contestId": 4,
+      "creationTimeSeconds": 1700000001,
+      "relativeTimeSeconds": 2147483647,
+      "problem": {
+        "contestId": 4,
+        "index": "A",
+        "name": "Watermelon",
+        "type": "PROGRAMMING",
+        "rating": 800,
+        "tags": ["brute force", "math"]
+      },
+      "author": {
+        "contestId": 4,
+        "members": [{"handle": "tourist"}],
+        "participantType": "PRACTICE",
+        "ghost": false,
+        "startTimeSeconds": 1266580800
+      },
+      "programmingLanguage": "GNU C++17",
+      "verdict": "COMPILATION_ERROR",
+      "testset": "TESTS",
+      "passedTestCount": 0,
+      "timeConsumedMillis": 0,
+      "memoryConsumedBytes": 0
+    }
+  ]
+}
