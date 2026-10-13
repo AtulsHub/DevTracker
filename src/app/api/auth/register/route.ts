@@ -9,19 +9,33 @@ import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
+import { validateUsername } from "@/lib/username";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
-  username: z
-    .string()
-    .min(3)
-    .max(40)
-    .regex(/^[a-z0-9_-]+$/, "Username may only contain lowercase letters, numbers, hyphens, and underscores"),
+  username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export async function POST(req: Request) {
   try {
+    const limited = rateLimit(`register:${clientIp(req)}`, 10, 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMITED",
+            message: `Too many attempts. Retry in ${limited.retryAfterSec}s`,
+          },
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limited.retryAfterSec) },
+        },
+      );
+    }
+
     const body = (await req.json()) as unknown;
     const parsed = registerSchema.safeParse(body);
 
@@ -32,7 +46,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const { username, email, password } = parsed.data;
+    const usernameCheck = validateUsername(parsed.data.username);
+    if (!usernameCheck.ok || !usernameCheck.username) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: usernameCheck.error ?? "Invalid username",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const username = usernameCheck.username;
+    const { email, password } = parsed.data;
 
     // Check for existing user (email or username)
     const existing = await db.query.users.findFirst({

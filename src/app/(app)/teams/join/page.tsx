@@ -1,79 +1,149 @@
 "use client";
 
-/**
- * src/app/(app)/teams/join/page.tsx
- * Join a team via invite code.
- */
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Card, CardBody } from "@/v2/components/Card";
+import { Button } from "@/v2/components/Button";
+import { Input } from "@/v2/components/Input";
+import { Skeleton } from "@/v2/components/Skeleton";
+import { EmptyState } from "@/v2/components/EmptyState";
+import { v2Api } from "@/v2/lib/api";
 
-export default function JoinTeamPage() {
+function JoinInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const code = searchParams.get("code");
-
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const codeParam = searchParams.get("code");
+  const [code, setCode] = useState(codeParam ?? "");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "pending" | "error"
+  >(codeParam ? "loading" : "idle");
   const [error, setError] = useState<string | null>(null);
   const [teamSlug, setTeamSlug] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function joinTeam() {
-      if (!code) {
-        setStatus("error");
-        setError("No invite code provided");
+  async function join(inviteCode: string) {
+    setStatus("loading");
+    setError(null);
+    try {
+      const data = await v2Api.joinByCode(inviteCode.trim().toUpperCase());
+      setTeamSlug(data.slug ?? null);
+      // Already-a-member returns ACTIVE/PENDING without error
+      if (data.slug && data.status === "ACTIVE") {
+        router.replace(`/teams/${data.slug}`);
         return;
       }
-
-      try {
-        // Try to find team by invite code - we'll need to modify API
-        // For now, just look for teams and try to join
-        setStatus("success");
-        setTeamSlug("team");
-      } catch (err) {
-        setStatus("error");
-        setError(err instanceof Error ? err.message : "Failed to join team");
-      }
+      setStatus(data.status === "PENDING" ? "pending" : "success");
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Failed to join team");
     }
+  }
 
-    joinTeam();
-  }, [code]);
+  useEffect(() => {
+    if (codeParam) void join(codeParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeParam]);
 
   if (status === "loading") {
     return (
-      <div style={{ padding: "2rem", textAlign: "center", maxWidth: "600px", margin: "0 auto" }}>
-        <div className="spinner" style={{ width: 40, height: 40, margin: "0 auto 1rem", border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-        <p style={{ color: "var(--text-tertiary)" }}>Joining team...</p>
+      <div className="mx-auto max-w-md px-4 py-16">
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
 
-  if (status === "error") {
+  if (status === "error" && codeParam) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center", maxWidth: "600px", margin: "0 auto" }}>
-        <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>😞</div>
-        <h1 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: 600 }}>Cannot join team</h1>
-        <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>{error}</p>
-        <button
-          onClick={() => router.push("/teams")}
-          style={{ padding: "10px 20px", borderRadius: "var(--radius-md)", backgroundColor: "var(--accent)", color: "var(--text-inverse)", border: "none", cursor: "pointer", fontWeight: 600 }}
-        >
-          Back to Teams
-        </button>
+      <div className="mx-auto max-w-md px-4 py-16">
+        <EmptyState
+          title="Could not join"
+          description={error ?? "Unknown error"}
+          action={
+            <Link href="/teams">
+              <Button variant="secondary">Back to teams</Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (status === "success" || status === "pending") {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <Card>
+          <CardBody className="text-center">
+            <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-xl)] font-bold">
+              {status === "pending" ? "Request sent" : "You're in"}
+            </h1>
+            <p className="mt-2 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+              {status === "pending"
+                ? "A team admin needs to approve your request."
+                : "Welcome to the team."}
+            </p>
+            {teamSlug ? (
+              <Button
+                className="mt-4"
+                onClick={() => router.push(`/teams/${teamSlug}`)}
+              >
+                Open team
+              </Button>
+            ) : (
+              <Link href="/teams" className="mt-4 inline-block">
+                <Button>Teams</Button>
+              </Link>
+            )}
+          </CardBody>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center", maxWidth: "600px", margin: "0 auto" }}>
-      <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✅</div>
-      <h1 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: 600 }}>Successfully joined team!</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>You can now view the team page.</p>
-      <button
-        onClick={() => router.push(teamSlug ? `/teams/${teamSlug}` : "/teams")}
-        style={{ padding: "10px 20px", borderRadius: "var(--radius-md)", backgroundColor: "var(--accent)", color: "var(--text-inverse)", border: "none", cursor: "pointer", fontWeight: 600 }}
-      >
-        Go to Team
-      </button>
+    <div className="mx-auto max-w-md px-4 py-10">
+      <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-2xl)] font-bold">
+        Join a team
+      </h1>
+      <p className="mt-1 mb-5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+        Enter the invite code from your team lead.
+      </p>
+      <Card>
+        <CardBody className="flex flex-col gap-3">
+          <Input
+            label="Invite code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="ABCD1234"
+            error={error ?? undefined}
+          />
+          <Button
+            onClick={() => void join(code)}
+            disabled={!code.trim()}
+          >
+            Join
+          </Button>
+          <Link
+            href="/teams"
+            className="text-center text-[var(--v2-text-sm)] text-[var(--v2-primary)]"
+          >
+            Back to teams
+          </Link>
+        </CardBody>
+      </Card>
     </div>
+  );
+}
+
+export default function JoinTeamPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md px-4 py-16">
+          <Skeleton className="h-40 w-full" />
+        </div>
+      }
+    >
+      <JoinInner />
+    </Suspense>
   );
 }

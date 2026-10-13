@@ -5,8 +5,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { initiateAccountLink } from "@/server/services/platforms";
+import { syncAccount } from "@/server/services/sync";
+import { getAdapter } from "@/server/platforms";
 import { z } from "zod";
 import { platformEnum } from "@/server/db/schema";
+import type { PlatformId } from "@/server/platforms/types";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const linkSchema = z.object({
   handle: z.string().min(1, "Handle is required"),
@@ -20,6 +24,21 @@ export async function POST(
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limited = rateLimit(
+      `link:${session.user.id}:${clientIp(req)}`,
+      20,
+      60_000,
+    );
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: `Too many link attempts. Retry in ${limited.retryAfterSec}s` },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limited.retryAfterSec) },
+        },
+      );
     }
 
     const { platform } = await params;
@@ -39,16 +58,57 @@ export async function POST(
       );
     }
 
+    const pid = platform as PlatformId;
+
+    // Validate handle exists on platform first (UX + existence check)
+    let adapter: ReturnType<typeof getAdapter>;
+    try {
+      adapter = getAdapter(pid);
+    } catch (e: unknown) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Unsupported platform" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      await adapter.fetchProfile(parsed.data.handle.trim());
+    } catch (e: unknown) {
+      return NextResponse.json(
+        {
+          error:
+            e instanceof Error
+              ? e.message
+              : `Could not find handle '${parsed.data.handle}' on ${platform}.`,
+        },
+        { status: 400 }
+      );
+    }
+
     const account = await initiateAccountLink(
       session.user.id,
-      platform as typeof platformEnum.enumValues[number],
-      parsed.data.handle
+      pid as typeof platformEnum.enumValues[number],
+      parsed.data.handle.trim()
     );
+
+    let synced = false;
+    let syncError: string | undefined;
+    try {
+      await syncAccount(account.id);
+      synced = true;
+    } catch (err: unknown) {
+      syncError = err instanceof Error ? err.message : String(err);
+    }
 
     return NextResponse.json({
       ok: true,
-      verificationToken: account.verificationToken,
-      instructions: `Please submit a failing solution to a problem and include '${account.verificationToken}' in the source code or follow platform-specific verification rules.`,
+      synced,
+      syncError,
+      account: {
+        id: account.id,
+        platform: account.platform,
+        handle: account.handle,
+      },
     });
   } catch (err: unknown) {
     console.error("[link route] Error:", err);

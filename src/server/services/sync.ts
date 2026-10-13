@@ -10,6 +10,7 @@ import {
   submissions,
   dailyActivity,
   platformEnum,
+  solves,
 } from "@/server/db/schema";
 import { getAdapter } from "@/server/platforms";
 import { eq, sql } from "drizzle-orm";
@@ -19,20 +20,20 @@ import type { NormalizedSubmission } from "@/server/platforms/types";
  * Synchronize a specific platform account's data.
  * Fetches new submissions, upserts problems/submissions, and aggregates daily stats.
  */
-export async function syncAccount(platformAccountId: string) {
+export async function syncAccount(
+  platformAccountId: string,
+  options?: { full?: boolean },
+) {
   const account = await db.query.platformAccounts.findFirst({
     where: eq(platformAccounts.id, platformAccountId),
   });
 
   if (!account) throw new Error("Platform account not found");
-  if (account.syncStatus === "pending") {
-    throw new Error("Cannot sync a pending/unverified account");
-  }
 
   const adapter = getAdapter(account.platform);
   if (!adapter) throw new Error(`Adapter for ${account.platform} not found`);
 
-    // Record sync start
+  // Record sync start
   const [syncRun] = await db
     .insert(syncRuns)
     .values({
@@ -44,10 +45,13 @@ export async function syncAccount(platformAccountId: string) {
     .returning();
 
   try {
-    // 1. Fetch new submissions since last sync
-    const since = account.lastSyncedAt
-      ? new Date(Math.max(0, account.lastSyncedAt.getTime() - 24 * 60 * 60 * 1000))
-      : new Date(0);
+    // Full backfill on first sync or when explicitly requested
+    const since =
+      options?.full || !account.lastSyncedAt
+        ? new Date(0)
+        : new Date(
+            Math.max(0, account.lastSyncedAt.getTime() - 24 * 60 * 60 * 1000),
+          );
 
     const newSubmissions = await adapter.fetchSubmissions(account.handle, since);
 
@@ -172,6 +176,37 @@ async function processSubmissions(
       .onConflictDoNothing({
         target: [submissions.platformAccountId, submissions.externalSubmissionId],
       });
+  }
+
+  // 2b. Record first-solve rows (one per user+problem) for accepted submissions.
+  const acceptedSubs = newSubmissions
+    .filter((s) => s.verdict === "OK")
+    .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+  if (acceptedSubs.length > 0) {
+    const seen = new Set<string>();
+    const solveRows: Array<{
+      userId: string;
+      problemId: string;
+      firstSolvedAt: Date;
+      solvedInContest: boolean;
+    }> = [];
+    for (const s of acceptedSubs) {
+      const problemId = problemIdMap.get(s.problem.externalId);
+      if (!problemId || seen.has(problemId)) continue;
+      seen.add(problemId);
+      solveRows.push({
+        userId,
+        problemId,
+        firstSolvedAt: s.submittedAt,
+        solvedInContest: s.isContest,
+      });
+    }
+    if (solveRows.length > 0) {
+      await db
+        .insert(solves)
+        .values(solveRows)
+        .onConflictDoNothing({ target: [solves.userId, solves.problemId] });
+    }
   }
 
   // 3. Calculate affected dates for daily_activity rollup

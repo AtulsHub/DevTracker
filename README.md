@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevTrack
 
-## Getting Started
+Track competitive programming / DSA progress across **Codeforces, LeetCode, HackerRank, AtCoder, and CodeChef**. Teams, leaderboards, and admin-set targets. Mobile-first UI with a bottom tab bar.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · Drizzle · Neon Postgres · Auth.js · Vercel Cron · pnpm
+
+## Setup
+
+1. Create a [Neon](https://console.neon.tech) project.
+2. Copy env template and fill values:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required at minimum:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL` — Neon **pooled** connection string
+- `DATABASE_URL_UNPOOLED` — Neon **direct** connection string (migrations)
+- `AUTH_SECRET` — `openssl rand -base64 32` (at least 32 chars)
+- `AUTH_URL` / `APP_URL` — `http://localhost:3000` locally
+- `CRON_SECRET` — protect `/api/cron/*` (required in production)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Optional: GitHub/Google OAuth client IDs.
 
-## Learn More
+3. Install, migrate, run:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000). Health: `/api/health`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Dev server |
+| `pnpm build` / `pnpm start` | Production |
+| `pnpm lint` / `pnpm typecheck` / `pnpm test` | Quality |
+| `pnpm db:generate` | Create migration from schema |
+| `pnpm db:migrate` | Apply migrations |
+| `pnpm db:studio` | Drizzle Studio |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Platform sync runs via **Vercel Cron** hitting `/api/cron/*` (not a separate worker).
+- Third-party calls live only under `src/server/platforms/`.
+- Cross-user data must go through `src/server/privacy/can-view.ts`.
+- Spec: [`docs/SPEC.md`](docs/SPEC.md).
+
+## Mobile
+
+Below `lg` (1024px): fixed bottom nav (Home, Activity, Contests, Teams, Profile) + sticky top bar + safe-area padding. Desktop: left sidebar.

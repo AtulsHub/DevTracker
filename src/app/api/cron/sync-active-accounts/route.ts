@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/env";
 import { db } from "@/server/db";
 import { platformAccounts } from "@/server/db/schema";
-import { lt, and, ne } from "drizzle-orm";
+import { lt, and, ne, or, isNull, sql } from "drizzle-orm";
 import { syncAccount } from "@/server/services/sync";
 
 export const dynamic = "force-dynamic";
@@ -25,16 +25,20 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Find accounts that haven't been synced in the last 15 minutes, and are not "pending"
+    // Never-synced (null) OR older than 15 minutes; skip pure pending claims
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     const accountsToSync = await db.query.platformAccounts.findMany({
       where: and(
-        lt(platformAccounts.lastSyncedAt, fifteenMinutesAgo),
-        ne(platformAccounts.syncStatus, "pending")
+        ne(platformAccounts.syncStatus, "pending"),
+        or(
+          isNull(platformAccounts.lastSyncedAt),
+          lt(platformAccounts.lastSyncedAt, fifteenMinutesAgo),
+        ),
       ),
       columns: { id: true, platform: true, handle: true },
-      limit: 10, // Process 10 at a time to stay within timeout
+      orderBy: [sql`${platformAccounts.lastSyncedAt} ASC NULLS FIRST`],
+      limit: 10,
     });
 
     let syncedCount = 0;

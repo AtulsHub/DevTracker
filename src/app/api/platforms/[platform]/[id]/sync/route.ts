@@ -40,7 +40,7 @@ export async function POST(
     }
     
     if (account.syncStatus === "pending") {
-      return NextResponse.json({ error: "Cannot sync an unverified account" }, { status: 400 });
+      // Allow syncing pending accounts (auto-link + immediate sync)
     }
 
     // Cooldown check (5 minutes)

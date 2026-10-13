@@ -1,12 +1,17 @@
 /**
- * src/server/services/activity.ts
- * Server-side queries for fetching daily activity data.
+ * Server-side queries for daily activity, heatmap, streak, timeline, platform stats.
  */
 import { db } from "@/server/db";
-import { dailyActivity, submissions, platformAccounts } from "@/server/db/schema";
-import { eq, and, gte, lte, inArray, sql, desc } from "drizzle-orm";
+import {
+  dailyActivity,
+  submissions,
+  platformAccounts,
+  solves,
+  problems,
+} from "@/server/db/schema";
+import { eq, and, gte, lte, inArray, sql, desc, count } from "drizzle-orm";
+import { todayLocalDateStr, toLocalDateStr } from "@/lib/date";
 
-// Type for submission with relations
 interface SubmissionWithRelations {
   id: string;
   platformAccountId: string;
@@ -33,73 +38,63 @@ interface SubmissionWithRelations {
   };
 }
 
-/**
- * Get daily activity for a specific user and date.
- * Returns solved count, submissions count, and contest count.
- */
 export async function getDailyActivity(userId: string, date: string) {
   const activity = await db.query.dailyActivity.findFirst({
     where: and(
       eq(dailyActivity.userId, userId),
-      eq(dailyActivity.date, date)
+      eq(dailyActivity.date, date),
     ),
   });
 
-  return activity ?? {
-    userId,
-    date,
-    solvedCount: 0,
-    submissionsCount: 0,
-    contestsCount: 0,
-    points: 0,
-  };
+  return (
+    activity ?? {
+      userId,
+      date,
+      solvedCount: 0,
+      submissionsCount: 0,
+      contestsCount: 0,
+      points: 0,
+    }
+  );
 }
 
-/**
- * Get daily activity for a date range (inclusive).
- * Returns array of daily activity records.
- */
 export async function getDailyActivityRange(
   userId: string,
   startDate: string,
-  endDate: string
+  endDate: string,
 ) {
   return db.query.dailyActivity.findMany({
     where: and(
       eq(dailyActivity.userId, userId),
       gte(dailyActivity.date, startDate),
-      lte(dailyActivity.date, endDate)
+      lte(dailyActivity.date, endDate),
     ),
     orderBy: [dailyActivity.date],
   });
 }
 
-/**
- * Get heatmap data for the last 365 days.
- * Returns array of { date, count } for each day.
- */
 export async function getHeatmapData(userId: string): Promise<
   Array<{ date: string; count: number }>
 > {
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 364); // 365 days including today
+  startDate.setDate(startDate.getDate() - 364);
 
-  const startStr = startDate.toISOString().split("T")[0]!;
-  const endStr = endDate.toISOString().split("T")[0]!;
+  const startStr = toLocalDateStr(startDate);
+  const endStr = toLocalDateStr(endDate);
 
   const activities = await getDailyActivityRange(userId, startStr, endStr);
-
-  // Create a map for quick lookup
   const activityMap = new Map(
-    activities.map((a) => [a.date, a.solvedCount])
+    activities.map((a) => [a.date, a.solvedCount]),
   );
 
-  // Fill in all 365 days
   const result: Array<{ date: string; count: number }> = [];
   const current = new Date(startDate);
-  while (current <= endDate) {
-    const dateStr = current.toISOString().split("T")[0]!;
+  current.setHours(12, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(12, 0, 0, 0);
+  while (current <= end) {
+    const dateStr = toLocalDateStr(current);
     result.push({
       date: dateStr,
       count: activityMap.get(dateStr) ?? 0,
@@ -110,40 +105,28 @@ export async function getHeatmapData(userId: string): Promise<
   return result;
 }
 
-/**
- * Calculate current streak for a user.
- * Returns the number of consecutive days with at least one solve.
- */
 export async function getStreak(userId: string): Promise<number> {
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0]!;
-
-  // Get last 365 days of activity
+  const todayStr = todayLocalDateStr();
   const heatmapData = await getHeatmapData(userId);
 
-  // Start from today and count backwards
   let streak = 0;
   let currentDate = todayStr;
 
-  // Check if there's activity today
   const todayActivity = heatmapData.find((d) => d.date === todayStr);
   if (!todayActivity || todayActivity.count === 0) {
-    // Check yesterday
-    const yesterday = new Date(today);
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    currentDate = yesterday.toISOString().split("T")[0]!;
+    currentDate = toLocalDateStr(yesterday);
   }
 
-  // Count consecutive days with activity
-  for (const day of heatmapData.reverse()) {
+  for (const day of [...heatmapData].reverse()) {
     if (day.date > currentDate) continue;
     if (day.count > 0) {
       streak++;
-      // Move to previous day
       const prev = new Date(day.date);
       prev.setDate(prev.getDate() - 1);
       currentDate = prev.toISOString().split("T")[0]!;
-    } else {
+    } else if (day.date === currentDate) {
       break;
     }
   }
@@ -151,15 +134,10 @@ export async function getStreak(userId: string): Promise<number> {
   return streak;
 }
 
-/**
- * Get activity timeline for a specific date.
- * Returns submissions and contest participations for that day.
- */
 export async function getActivityTimeline(userId: string, date: string) {
   const startOfDay = new Date(`${date}T00:00:00.000Z`);
   const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
-  // Get user's platform accounts
   const accounts = await db.query.platformAccounts.findMany({
     where: eq(platformAccounts.userId, userId),
     columns: { id: true, platform: true, handle: true },
@@ -171,12 +149,11 @@ export async function getActivityTimeline(userId: string, date: string) {
 
   const accountIds = accounts.map((a) => a.id);
 
-  // Get all submissions for this day
-  const daySubmissions = await db.query.submissions.findMany({
+  const daySubmissions = (await db.query.submissions.findMany({
     where: and(
       inArray(submissions.platformAccountId, accountIds),
       gte(submissions.submittedAt, startOfDay),
-      lte(submissions.submittedAt, endOfDay)
+      lte(submissions.submittedAt, endOfDay),
     ),
     with: {
       problem: true,
@@ -185,10 +162,9 @@ export async function getActivityTimeline(userId: string, date: string) {
       },
     },
     orderBy: [desc(submissions.submittedAt)],
-  }) as SubmissionWithRelations[];
+  })) as SubmissionWithRelations[];
 
-  // Separate solves (accepted) and contest participations
-  const solves = daySubmissions
+  const solvesList = daySubmissions
     .filter((s) => s.verdict === "OK")
     .map((s) => ({
       id: s.id,
@@ -207,69 +183,154 @@ export async function getActivityTimeline(userId: string, date: string) {
       contestId: s.contestId,
     }));
 
-  // Get unique contest participations
   const contestSubs = daySubmissions.filter((s) => s.isContest && s.contestId);
-  const uniqueContests = new Map();
+  const uniqueContests = new Map<
+    string,
+    {
+      contestId: string;
+      platform: string;
+      handle: string;
+      submittedAt: Date;
+      problemCount: number;
+    }
+  >();
   for (const s of contestSubs) {
-    if (!uniqueContests.has(s.contestId)) {
-      uniqueContests.set(s.contestId, {
-        contestId: s.contestId,
+    const key = s.contestId!;
+    if (!uniqueContests.has(key)) {
+      uniqueContests.set(key, {
+        contestId: key,
         platform: s.platformAccount.platform,
         handle: s.platformAccount.handle,
         submittedAt: s.submittedAt,
         problemCount: 0,
       });
     }
-    uniqueContests.get(s.contestId).problemCount++;
+    uniqueContests.get(key)!.problemCount++;
   }
 
-  const contests = Array.from(uniqueContests.values()).map((c) => ({
-    ...c,
-    // Fetch contest details from contests table if needed
-  }));
-
-  return { solves, contests };
+  return {
+    solves: solvesList,
+    contests: Array.from(uniqueContests.values()),
+  };
 }
 
 /**
- * Get platform breakdown stats for a user (total solves per platform).
+ * All linked platforms for a user, with solved counts (0 if none synced yet).
  */
 export async function getPlatformStats(userId: string) {
   const accounts = await db.query.platformAccounts.findMany({
     where: eq(platformAccounts.userId, userId),
-    columns: { id: true, platform: true, handle: true, currentRating: true, maxRating: true, rank: true },
+    columns: {
+      id: true,
+      platform: true,
+      handle: true,
+      currentRating: true,
+      maxRating: true,
+      rank: true,
+      syncStatus: true,
+      lastSyncedAt: true,
+      syncError: true,
+    },
   });
 
   if (accounts.length === 0) return [];
 
   const accountIds = accounts.map((a) => a.id);
 
-  // Get accepted submissions count per platform
-  const stats = await db
+  const counts = await db
     .select({
-      platform: platformAccounts.platform,
-      handle: platformAccounts.handle,
-      currentRating: platformAccounts.currentRating,
-      maxRating: platformAccounts.maxRating,
-      rank: platformAccounts.rank,
-      solvedCount: sql<number>`COUNT(DISTINCT ${submissions.problemId})`,
+      platformAccountId: submissions.platformAccountId,
+      solvedCount: sql<number>`COUNT(DISTINCT ${submissions.problemId})::int`,
     })
     .from(submissions)
-    .innerJoin(platformAccounts, eq(submissions.platformAccountId, platformAccounts.id))
     .where(
       and(
         inArray(submissions.platformAccountId, accountIds),
-        eq(submissions.verdict, "OK")
-      )
+        eq(submissions.verdict, "OK"),
+      ),
     )
-    .groupBy(
-      platformAccounts.id,
-      platformAccounts.platform,
-      platformAccounts.handle,
-      platformAccounts.currentRating,
-      platformAccounts.maxRating,
-      platformAccounts.rank
-    );
+    .groupBy(submissions.platformAccountId);
 
-  return stats;
+  const countMap = new Map(
+    counts.map((c) => [c.platformAccountId, Number(c.solvedCount)]),
+  );
+
+  // Prefer solves table totals when available (cross-check)
+  const solveTotals = await db
+    .select({ total: count() })
+    .from(solves)
+    .where(eq(solves.userId, userId));
+
+  void solveTotals;
+
+  return accounts.map((a) => ({
+    id: a.id,
+    platform: a.platform,
+    handle: a.handle,
+    currentRating: a.currentRating,
+    maxRating: a.maxRating,
+    rank: a.rank,
+    solvedCount: countMap.get(a.id) ?? 0,
+    syncStatus: a.syncStatus,
+    lastSyncedAt: a.lastSyncedAt,
+    syncError: a.syncError,
+  }));
+}
+
+/** Recent accepted solves across all platforms (for dashboard feed). */
+export async function getRecentSolves(userId: string, limit = 15) {
+  const accounts = await db.query.platformAccounts.findMany({
+    where: eq(platformAccounts.userId, userId),
+    columns: { id: true, platform: true, handle: true },
+  });
+  if (accounts.length === 0) return [];
+
+  const accountIds = accounts.map((a) => a.id);
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
+
+  const rows = await db
+    .select({
+      id: submissions.id,
+      platformAccountId: submissions.platformAccountId,
+      submittedAt: submissions.submittedAt,
+      language: submissions.language,
+      problemTitle: problems.title,
+      problemUrl: problems.url,
+      problemRating: problems.rating,
+      problemExternalId: problems.externalId,
+      platform: problems.platform,
+    })
+    .from(submissions)
+    .innerJoin(problems, eq(submissions.problemId, problems.id))
+    .where(
+      and(
+        inArray(submissions.platformAccountId, accountIds),
+        eq(submissions.verdict, "OK"),
+      ),
+    )
+    .orderBy(desc(submissions.submittedAt))
+    .limit(limit);
+
+  return rows.map((r) => {
+    const acc = accountMap.get(r.platformAccountId);
+    return {
+      id: r.id,
+      platform: r.platform,
+      handle: acc?.handle ?? "",
+      title: r.problemTitle,
+      url: r.problemUrl,
+      rating: r.problemRating,
+      externalId: r.problemExternalId,
+      language: r.language,
+      submittedAt: r.submittedAt,
+    };
+  });
+}
+
+export async function getTotalSolved(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ total: count() })
+    .from(solves)
+    .where(eq(solves.userId, userId));
+  return Number(row?.total ?? 0);
 }

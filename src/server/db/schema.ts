@@ -142,11 +142,22 @@ export const users = pgTable("users", {
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
   passwordHash: text("password_hash"), // null for OAuth-only users
   username: varchar("username", { length: 40 }).notNull().unique(),
   displayName: varchar("display_name", { length: 80 }),
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
+  /** Short tagline shown under the name on public profiles */
+  headline: varchar("headline", { length: 160 }),
+  location: varchar("location", { length: 120 }),
+  /** Optional age shown on public profile when set */
+  age: integer("age"),
+  websiteUrl: text("website_url"),
+  githubUrl: text("github_url"),
+  college: varchar("college", { length: 120 }),
+  /** Comma-separated skills / topics (e.g. "DP, Graphs, System Design") */
+  skills: text("skills"),
   timezone: varchar("timezone", { length: 60 }).notNull().default("UTC"),
   profileVisibility: profileVisibilityEnum("profile_visibility")
     .notNull()
@@ -259,7 +270,11 @@ export const platformAccounts = pgTable("platform_accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+},
+  // One row per (platform, handle). Required by the `onConflictDoUpdate`
+  // target in `initiateAccountLink()` and to prevent duplicate claims.
+  (table) => [unique().on(table.platform, table.handle)]
+);
 
 export const problems = pgTable(
   "problems",
@@ -490,7 +505,7 @@ export const targets = pgTable("targets", {
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   type: targetTypeEnum("type").notNull(),
-  criteria: jsonb("criteria").notNull(), // type-specific JSON object
+  criteria: jsonb("criteria").$type<Record<string, unknown>>().notNull(), // type-specific JSON object
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   recurrence: recurrenceEnum("recurrence").notNull().default("none"),

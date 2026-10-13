@@ -212,7 +212,8 @@ export async function joinTeamByInvite(inviteCode: string, userId: string) {
   });
 
   if (existing) {
-    throw new Error("Already a member of this team");
+    // Idempotent: opening an invite link while already a member should succeed
+    return { teamId: team.id, slug: team.slug, status: existing.status };
   }
 
   // Check team visibility
@@ -229,7 +230,7 @@ export async function joinTeamByInvite(inviteCode: string, userId: string) {
     status,
   });
 
-  return { teamId: team.id, status };
+  return { teamId: team.id, slug: team.slug, status };
 }
 
 /**
@@ -409,6 +410,57 @@ export async function rejectJoinRequest(teamId: string, actorId: string, targetU
 }
 
 /**
+ * Leader/admin adds a member by username (ACTIVE immediately).
+ * Use invite codes when you want the other person to opt in.
+ */
+export async function addMemberByUsername(
+  teamId: string,
+  actorId: string,
+  username: string,
+) {
+  const actorMembership = await db.query.teamMembers.findFirst({
+    where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, actorId)),
+  });
+
+  if (!actorMembership || !["OWNER", "ADMIN"].includes(actorMembership.role)) {
+    throw new Error("Only owners and admins can add members");
+  }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.username, username.trim().replace(/^@/, "")),
+    columns: { id: true, username: true },
+  });
+  if (!user) throw new Error("User not found");
+
+  const existing = await db.query.teamMembers.findFirst({
+    where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, user.id)),
+  });
+
+  if (existing?.status === "ACTIVE") {
+    throw new Error("User is already a member");
+  }
+
+  if (existing?.status === "PENDING") {
+    await db
+      .update(teamMembers)
+      .set({ status: "ACTIVE", role: "MEMBER" })
+      .where(
+        and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, user.id)),
+      );
+    return { userId: user.id, username: user.username, status: "ACTIVE" as const };
+  }
+
+  await db.insert(teamMembers).values({
+    teamId,
+    userId: user.id,
+    role: "MEMBER",
+    status: "ACTIVE",
+  });
+
+  return { userId: user.id, username: user.username, status: "ACTIVE" as const };
+}
+
+/**
  * Get pending join requests for a team.
  */
 export async function getPendingRequests(teamId: string, actorId: string) {
@@ -439,7 +491,14 @@ export async function getTeamMembers(teamId: string, limit = 50, offset = 0) {
     where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.status, "ACTIVE")),
     with: {
       user: {
-        columns: { id: true, username: true, displayName: true, avatarUrl: true, bio: true },
+        columns: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          bio: true,
+          profileVisibility: true,
+        },
       },
     },
     limit,

@@ -1,0 +1,140 @@
+/**
+ * DevTrack v2 design tokens — light + dark.
+ * No hardcoded colors outside this file.
+ */
+:root {
+  /* Brand */
+  --v2-primary: #0f766e;
+  --v2-primary-hover: #0d9488;
+  --v2-primary-muted: rgba(15, 118, 110, 0.12);
+  --v2-accent: #ea580c;
+  --v2-accent-muted: rgba(234, 88, 12, 0.12);
+
+  /* Surfaces */
+  --v2-bg: #f4f6f8;
+  --v2-bg-elevated: #ffffff;
+  --v2-bg-muted: #e8eef2;
+  --v2-border: #d5dee6;
+  --v2-border-strong: #b8c5d1;
+
+  /* Text */
+  --v2-fg: #0f172a;
+  --v2-fg-muted: #475569;
+  --v2-fg-subtle: #64748b;
+  --v2-fg-inverse: #ffffff;
+
+  /* Semantic */
+  --v2-success: #059669;
+  --v2-warning: #d97706;
+  --v2-danger: #dc2626;
+  --v2-info: #2563eb;
+
+  /* Platforms */
+  --v2-cf: #1a73e8;
+  --v2-lc: #ffa116;
+  --v2-hr: #2ec866;
+  --v2-ac: #000000;
+  --v2-cc: #5b4638;
+  --v2-gfg: #2f8d46;
+
+  /* Heatmap */
+  --v2-heat-0: #ebedf0;
+  --v2-heat-1: #9be9a8;
+  --v2-heat-2: #40c463;
+  --v2-heat-3: #30a14e;
+  --v2-heat-4: #216e39;
+
+  /* Spacing (4px base) */
+  --v2-space-1: 0.25rem;
+  --v2-space-2: 0.5rem;
+  --v2-space-3: 0.75rem;
+  --v2-space-4: 1rem;
+  --v2-space-5: 1.25rem;
+  --v2-space-6: 1.5rem;
+  --v2-space-8: 2rem;
+  --v2-space-10: 2.5rem;
+  --v2-space-12: 3rem;
+
+  /* Radii */
+  --v2-radius-sm: 8px;
+  --v2-radius-md: 12px;
+  --v2-radius-lg: 16px;
+  --v2-radius-xl: 24px;
+  --v2-radius-full: 9999px;
+
+  /* Shadows */
+  --v2-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --v2-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --v2-shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+
+  /* Type */
+  --v2-font-sans: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
+  --v2-font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-outfit), var(--font-geist-sans), sans-serif;
+  --v2-text-xs: 0.75rem;
+  --v2-text-sm: 0.875rem;
+  --v2-text-base: 1rem;
+  --v2-text-lg: 1.125rem;
+  --v2-text-xl: 1.25rem;
+  --v2-text-2xl: 1.5rem;
+  --v2-text-3xl: 1.875rem;
+
+  /* Layout */
+  --v2-sidebar-w: 240px;
+  --v2-rail-w: 72px;
+  --v2-bottom-nav-h: 64px;
+  --v2-topbar-h: 56px;
+  --v2-z-nav: 40;
+  --v2-z-sheet: 50;
+  --v2-z-toast: 60;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --v2-primary: #2dd4bf;
+  --v2-primary-hover: #5eead4;
+  --v2-primary-muted: rgba(45, 212, 191, 0.14);
+  --v2-accent: #fb923c;
+  --v2-accent-muted: rgba(251, 146, 60, 0.14);
+
+  --v2-bg: #0b1220;
+  --v2-bg-elevated: #121a2b;
+  --v2-bg-muted: #1a2438;
+  --v2-border: #243044;
+  --v2-border-strong: #334155;
+
+  --v2-fg: #e8eef7;
+  --v2-fg-muted: #94a3b8;
+  --v2-fg-subtle: #64748b;
+  --v2-fg-inverse: #0b1220;
+
+  --v2-success: #34d399;
+  --v2-warning: #fbbf24;
+  --v2-danger: #f87171;
+  --v2-info: #60a5fa;
+
+  --v2-ac: #e2e8f0;
+
+  --v2-heat-0: #1a2438;
+  --v2-heat-1: rgba(45, 212, 191, 0.25);
+  --v2-heat-2: rgba(45, 212, 191, 0.45);
+  --v2-heat-3: rgba(45, 212, 191, 0.7);
+  --v2-heat-4: #2dd4bf;
+
+  --v2-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --v2-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --v2-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

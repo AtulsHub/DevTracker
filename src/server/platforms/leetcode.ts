@@ -283,7 +283,38 @@ export const leetcodeAdapter: PlatformAdapter = {
 
   // ── Upcoming Contests ─────────────────────────────────────────────────────
   async fetchUpcomingContests(): Promise<NormalizedContest[]> {
-    // TopContests query usually isn't fully available unauthenticated but we can try
-    return []; // For now, we skip upcoming contests for LC, as CF is more reliable for contest schedules
+    try {
+      await sleep(REQUEST_DELAY_MS);
+      const query = `
+        query {
+          contestV2UpcomingContests {
+            title
+            titleSlug
+            startTime
+            duration
+          }
+        }
+      `;
+      const data = await lcGraphQL<{
+        contestV2UpcomingContests: Array<{
+          title: string;
+          titleSlug: string;
+          startTime: number;
+          duration: number;
+        }> | null;
+      }>(query, {});
+
+      const list = data.contestV2UpcomingContests ?? [];
+      return list.map((c) => ({
+        externalId: c.titleSlug,
+        name: c.title,
+        url: `https://leetcode.com/contest/${c.titleSlug}`,
+        startsAt: new Date(c.startTime * 1000),
+        durationSeconds: c.duration,
+        phase: "BEFORE" as const,
+      }));
+    } catch {
+      return [];
+    }
   },
 };

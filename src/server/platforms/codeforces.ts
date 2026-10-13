@@ -156,8 +156,15 @@ export const codeforcesAdapter: PlatformAdapter = {
     // Seen problem IDs to deduplicate "first accepted" per problem
     const seenAccepted = new Set<string>();
 
-     
-    while (true) {
+    // Bound the initial backfill so one request doesn't page through a user's
+    // entire submission history. Incremental syncs stop early once submissions
+    // predate `since`, so they rarely reach this cap.
+    const isInitial = sinceSeconds <= 0;
+    const maxPages = isInitial ? 25 : 40; // 200 submissions per page
+    let page = 0;
+
+    while (page < maxPages) {
+      page++;
       await sleep(REQUEST_DELAY_MS);
 
       const statuses = (await cfFetch(

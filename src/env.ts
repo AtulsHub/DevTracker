@@ -56,7 +56,7 @@ function validateEnv(): Env {
   if (!parsed.success) {
     console.error(
       "❌  Invalid environment variables:\n",
-      parsed.error.flatten().fieldErrors
+      parsed.error.flatten().fieldErrors,
     );
     throw new Error("Invalid environment variables. Check .env.example.");
   }

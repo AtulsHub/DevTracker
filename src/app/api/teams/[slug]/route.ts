@@ -48,7 +48,14 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ team });
+    // Invite codes are for owners/admins only
+    const canSeeInvite =
+      team.userRole === "OWNER" || team.userRole === "ADMIN";
+    const payload = canSeeInvite
+      ? team
+      : { ...team, inviteCode: null };
+
+    return NextResponse.json({ team: payload });
   } catch (err: unknown) {
     console.error("[GET /api/teams/[slug]] Error:", err);
     return NextResponse.json(

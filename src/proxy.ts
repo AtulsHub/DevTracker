@@ -1,28 +1,30 @@
 /**
- * src/middleware.ts
- * Next.js middleware for authentication protection.
- * Protects all routes under /(app)/* — redirects to sign-in if not authenticated.
+ * Auth gate — protect private app routes; guests keep Home/Contests/Explore/Teams/u/*.
  */
 import { auth } from "@/server/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Protected app routes
-  const isAppRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/activity") ||
-    pathname.startsWith("/contests") ||
-    pathname.startsWith("/teams") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/onboarding");
+  const protectedPrefixes = [
+    "/dashboard",
+    "/settings",
+    "/profile",
+    "/onboarding",
+    "/activity",
+  ];
 
-  if (isAppRoute && !req.auth) {
-    const signInUrl = new URL("/sign-in", req.url);
-    signInUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(signInUrl);
+  const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
+
+  if (isProtected && !req.auth) {
+    const dest =
+      pathname.startsWith("/profile") || pathname.startsWith("/dashboard")
+        ? "/sign-up"
+        : "/sign-in";
+    const url = new URL(dest, req.url);
+    url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
@@ -30,7 +32,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    // Match all routes except static files, API routes, and auth pages
-    "/((?!api|_next/static|_next/image|favicon.ico|sign-in|sign-up).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

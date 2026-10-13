@@ -5,6 +5,7 @@
 import { db } from "@/server/db";
 import { contests, platformEnum, contestPhaseEnum } from "@/server/db/schema";
 import { eq, and, gte, lte, asc, sql } from "drizzle-orm";
+import { listRegisteredPlatforms, tryGetAdapter } from "@/server/platforms";
 
 export interface ContestFilters {
   platform?: string;
@@ -86,8 +87,8 @@ export async function getContests(filters: ContestFilters = {}): Promise<Normali
  */
 export async function getUpcomingContests(
   platform?: string,
-  days = 30
-): Promise<NormalizedContest[]> {
+  days = 30,
+) {
   const startDate = new Date();
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + days);
@@ -193,6 +194,35 @@ export async function upsertContests(
   }
 
   return upserted;
+}
+
+/**
+ * Pull upcoming contests from every registered platform adapter and upsert.
+ */
+export async function refreshContestsFromAdapters(): Promise<{
+  upserted: number;
+  errors: string[];
+}> {
+  let upserted = 0;
+  const errors: string[] = [];
+
+  for (const platform of listRegisteredPlatforms()) {
+    const adapter = tryGetAdapter(platform);
+    if (!adapter) continue;
+    try {
+      const upcoming = await adapter.fetchUpcomingContests();
+      if (upcoming.length > 0) {
+        upserted += await upsertContests(platform, upcoming);
+      }
+    } catch (err: unknown) {
+      errors.push(
+        `${platform}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  await updateContestPhases();
+  return { upserted, errors };
 }
 
 /**
