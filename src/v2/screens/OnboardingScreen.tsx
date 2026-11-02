@@ -34,10 +34,15 @@ export function OnboardingScreen({
 
   return (
     <div className="mx-auto flex min-h-[70dvh] w-full max-w-md flex-col justify-center px-4 py-8">
-      <p className="font-mono text-[var(--v2-text-xs)] font-semibold uppercase tracking-wider text-[var(--v2-primary)]">
-        Welcome
-      </p>
-      <h1 className="mt-1 text-[var(--v2-text-2xl)] font-bold">
+      <div className="mb-1 flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-white">
+          DT
+        </span>
+        <span className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)]">
+          Welcome
+        </span>
+      </div>
+      <h1 className="mt-4 text-[1.5rem] font-semibold tracking-tight text-[var(--v2-fg)]">
         Set up your profile
       </h1>
       <p className="mb-5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
@@ -51,7 +56,7 @@ export function OnboardingScreen({
             onChange={(e) => setDisplayName(e.target.value)}
           />
           <fieldset>
-            <legend className="mb-2 text-[var(--v2-text-sm)] font-medium">
+            <legend className="mb-2 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)]">
               Profile visibility
             </legend>
             <div className="flex gap-2">
@@ -61,10 +66,10 @@ export function OnboardingScreen({
                   type="button"
                   onClick={() => setVisibility(v)}
                   className={cn(
-                    "flex-1 rounded-[var(--v2-radius-md)] border px-3 py-2 text-[var(--v2-text-sm)] font-medium",
+                    "flex-1 rounded-[var(--v2-radius-md)] border px-3 py-2 text-[var(--v2-text-sm)] font-medium transition-colors duration-[var(--v2-duration)]",
                     visibility === v
                       ? "border-[var(--v2-primary)] bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                      : "border-[var(--v2-border)] text-[var(--v2-fg-muted)]",
+                      : "border-[var(--v2-border)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
                   )}
                 >
                   {v === "PUBLIC" ? "Public" : "Private"}

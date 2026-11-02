@@ -6,21 +6,24 @@ export type PlatformId =
   | "codechef"
   | "geeksforgeeks";
 
-export const PLATFORMS: Record<
-  PlatformId,
-  {
-    id: PlatformId;
-    label: string;
-    short: string;
-    colorVar: string;
-    profileUrl: (handle: string) => string;
-  }
-> = {
+export type PlatformMeta = {
+  id: PlatformId;
+  label: string;
+  short: string;
+  /** CSS variable for UI accents */
+  colorVar: string;
+  /** Hex for charts (Recharts) */
+  color: string;
+  profileUrl: (handle: string) => string;
+};
+
+export const PLATFORMS: Record<PlatformId, PlatformMeta> = {
   codeforces: {
     id: "codeforces",
     label: "Codeforces",
     short: "CF",
     colorVar: "var(--v2-cf)",
+    color: "#1a73e8",
     profileUrl: (h) => `https://codeforces.com/profile/${h}`,
   },
   leetcode: {
@@ -28,6 +31,7 @@ export const PLATFORMS: Record<
     label: "LeetCode",
     short: "LC",
     colorVar: "var(--v2-lc)",
+    color: "#ffa116",
     profileUrl: (h) => `https://leetcode.com/${h}/`,
   },
   hackerrank: {
@@ -35,6 +39,7 @@ export const PLATFORMS: Record<
     label: "HackerRank",
     short: "HR",
     colorVar: "var(--v2-hr)",
+    color: "#2ec866",
     profileUrl: (h) => `https://www.hackerrank.com/${h}`,
   },
   atcoder: {
@@ -42,6 +47,7 @@ export const PLATFORMS: Record<
     label: "AtCoder",
     short: "AC",
     colorVar: "var(--v2-ac)",
+    color: "#e4e4e7",
     profileUrl: (h) => `https://atcoder.jp/users/${h}`,
   },
   codechef: {
@@ -49,6 +55,7 @@ export const PLATFORMS: Record<
     label: "CodeChef",
     short: "CC",
     colorVar: "var(--v2-cc)",
+    color: "#5b4638",
     profileUrl: (h) => `https://www.codechef.com/users/${h}`,
   },
   geeksforgeeks: {
@@ -56,9 +63,13 @@ export const PLATFORMS: Record<
     label: "GeeksforGeeks",
     short: "GFG",
     colorVar: "var(--v2-gfg)",
+    color: "#2f8d46",
     profileUrl: (h) => `https://auth.geeksforgeeks.org/user/${h}`,
   },
 };
+
+/** Shared alias for chips, badges, charts, heatmap tints. */
+export const PLATFORM_META = PLATFORMS;
 
 export const LINKABLE_PLATFORMS: PlatformId[] = [
   "codeforces",

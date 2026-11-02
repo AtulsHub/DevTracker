@@ -13,7 +13,7 @@ import {
   solves,
 } from "@/server/db/schema";
 import { getAdapter } from "@/server/platforms";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { NormalizedSubmission } from "@/server/platforms/types";
 
 /**
@@ -59,6 +59,29 @@ export async function syncAccount(
       await processSubmissions(account.id, account.userId, account.platform, newSubmissions);
     }
 
+    // 1b. Full activity calendar when the platform exposes one (e.g. LeetCode).
+    // Recent-submission APIs are truncated; calendar fills the heatmap.
+    // Failures here must not fail the whole sync.
+    let activityCalendar: Record<string, number> | undefined;
+    if (typeof adapter.fetchActivityCalendar === "function") {
+      try {
+        activityCalendar = await adapter.fetchActivityCalendar(account.handle);
+        if (activityCalendar && Object.keys(activityCalendar).length > 0) {
+          await applyActivityCalendar(account.userId, activityCalendar);
+        }
+      } catch (calErr) {
+        console.error(
+          `[Sync calendar] ${account.platform}/${account.handle}:`,
+          calErr,
+        );
+      }
+    }
+
+    // Fallback: build a calendar from submissions we already stored
+    if (!activityCalendar || Object.keys(activityCalendar).length === 0) {
+      activityCalendar = await buildCalendarFromSubmissions(account.id);
+    }
+
     // 2. Fetch and update profile metadata (rating, etc.)
     const profile = await adapter.fetchProfile(account.handle);
 
@@ -71,6 +94,12 @@ export async function syncAccount(
         currentRating: profile.currentRating,
         maxRating: profile.maxRating,
         rank: profile.rank,
+        ...(profile.solvedCount != null
+          ? { reportedSolvedCount: profile.solvedCount }
+          : {}),
+        ...(activityCalendar
+          ? { activityCalendar }
+          : {}),
       })
       .where(eq(platformAccounts.id, account.id));
 
@@ -128,6 +157,7 @@ async function processSubmissions(
       title: p.title,
       url: p.url,
       rating: p.rating,
+      difficultyLabel: p.difficultyLabel,
       tags: p.tags,
     }));
 
@@ -139,6 +169,7 @@ async function processSubmissions(
         set: {
           title: sql`EXCLUDED.title`,
           rating: sql`EXCLUDED.rating`,
+          difficultyLabel: sql`COALESCE(EXCLUDED.difficulty_label, ${problems.difficultyLabel})`,
           tags: sql`EXCLUDED.tags`,
         },
       });
@@ -219,6 +250,64 @@ async function processSubmissions(
   // 4. Rollup daily activity
   for (const dateStr of datesToUpdate) {
     await rollupDailyActivity(userId, dateStr);
+  }
+}
+
+/** Per-day accepted submission counts from stored submissions. */
+async function buildCalendarFromSubmissions(
+  platformAccountId: string,
+): Promise<Record<string, number>> {
+  const rows = await db
+    .select({
+      submittedAt: submissions.submittedAt,
+    })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.platformAccountId, platformAccountId),
+        eq(submissions.verdict, "OK"),
+      ),
+    );
+
+  const cal: Record<string, number> = {};
+  for (const row of rows) {
+    const date = row.submittedAt.toISOString().slice(0, 10);
+    cal[date] = (cal[date] ?? 0) + 1;
+  }
+  return cal;
+}
+
+/**
+ * Merge a platform submission calendar into daily_activity (keeps the higher count).
+ */
+async function applyActivityCalendar(
+  userId: string,
+  calendar: Record<string, number>,
+) {
+  const entries = Object.entries(calendar).filter(([, n]) => n > 0);
+  const BATCH = 80;
+  for (let i = 0; i < entries.length; i += BATCH) {
+    const batch = entries.slice(i, i + BATCH);
+    await Promise.all(
+      batch.map(async ([date, count]) => {
+        await db
+          .insert(dailyActivity)
+          .values({
+            userId,
+            date,
+            solvedCount: count,
+            submissionsCount: count,
+          })
+          .onConflictDoUpdate({
+            target: [dailyActivity.userId, dailyActivity.date],
+            set: {
+              solvedCount: sql`GREATEST(${dailyActivity.solvedCount}, EXCLUDED.solved_count)`,
+              submissionsCount: sql`GREATEST(${dailyActivity.submissionsCount}, EXCLUDED.submissions_count)`,
+              updatedAt: new Date(),
+            },
+          });
+      }),
+    );
   }
 }
 

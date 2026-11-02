@@ -160,7 +160,8 @@ export const codeforcesAdapter: PlatformAdapter = {
     // entire submission history. Incremental syncs stop early once submissions
     // predate `since`, so they rarely reach this cap.
     const isInitial = sinceSeconds <= 0;
-    const maxPages = isInitial ? 25 : 40; // 200 submissions per page
+    // Full history for heatmaps: up to ~20k / 8k submissions
+    const maxPages = isInitial ? 100 : 50; // 200 submissions per page
     let page = 0;
 
     while (page < maxPages) {

@@ -4,8 +4,12 @@
  */
 import { db } from "@/server/db";
 import { contests, platformEnum, contestPhaseEnum } from "@/server/db/schema";
-import { eq, and, gte, lte, asc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, asc, sql, count } from "drizzle-orm";
 import { listRegisteredPlatforms, tryGetAdapter } from "@/server/platforms";
+import {
+  fetchAggregatedUpcomingContests,
+  type AggregatedContest,
+} from "@/server/services/contest-aggregator";
 
 export interface ContestFilters {
   platform?: string;
@@ -102,6 +106,25 @@ export async function getUpcomingContests(
   });
 }
 
+export async function countUpcomingContests(days = 60): Promise<number> {
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + days);
+
+  const [row] = await db
+    .select({ c: count() })
+    .from(contests)
+    .where(
+      and(
+        eq(contests.phase, "BEFORE"),
+        gte(contests.startsAt, startDate),
+        lte(contests.startsAt, endDate),
+      ),
+    );
+
+  return Number(row?.c ?? 0);
+}
+
 /**
  * Get contest by ID.
  */
@@ -114,7 +137,7 @@ export async function getContestById(id: string): Promise<NormalizedContest | nu
 
   if (result.length === 0) return null;
 
-  const c = result[0];
+  const c = result[0]!;
   return {
     id: c.id,
     platform: c.platform,
@@ -164,6 +187,9 @@ export async function upsertContests(
   let upserted = 0;
 
   for (const c of contestData) {
+    if (!(platformEnum.enumValues as string[]).includes(platform)) {
+      continue;
+    }
     const result = await db
       .insert(contests)
       .values({
@@ -196,23 +222,69 @@ export async function upsertContests(
   return upserted;
 }
 
+async function upsertAggregated(rows: AggregatedContest[]): Promise<number> {
+  const byPlatform = new Map<string, AggregatedContest[]>();
+  for (const row of rows) {
+    const list = byPlatform.get(row.platform) ?? [];
+    list.push(row);
+    byPlatform.set(row.platform, list);
+  }
+
+  let upserted = 0;
+  for (const [platform, list] of byPlatform) {
+    upserted += await upsertContests(
+      platform,
+      list.map((c) => ({
+        externalId: c.externalId,
+        name: c.name,
+        url: c.url,
+        startsAt: c.startsAt,
+        durationSeconds: c.durationSeconds,
+        type: c.type,
+        phase: c.phase,
+      })),
+    );
+  }
+  return upserted;
+}
+
 /**
- * Pull upcoming contests from every registered platform adapter and upsert.
+ * Pull upcoming contests from aggregators/scrapers + platform adapters, then upsert.
  */
 export async function refreshContestsFromAdapters(): Promise<{
   upserted: number;
   errors: string[];
+  sources?: string[];
 }> {
   let upserted = 0;
   const errors: string[] = [];
+  const sources: string[] = [];
 
+  // 1) Aggregators + scrapers (covers platforms without stable APIs)
+  try {
+    const agg = await fetchAggregatedUpcomingContests();
+    sources.push(...agg.sources);
+    errors.push(...agg.errors);
+    if (agg.contests.length > 0) {
+      upserted += await upsertAggregated(agg.contests);
+      sources.push(`aggregator-upserted:${agg.contests.length}`);
+    }
+  } catch (err: unknown) {
+    errors.push(
+      `aggregator: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // 2) Native adapters fill gaps / refresh known platforms
   for (const platform of listRegisteredPlatforms()) {
     const adapter = tryGetAdapter(platform);
     if (!adapter) continue;
     try {
       const upcoming = await adapter.fetchUpcomingContests();
       if (upcoming.length > 0) {
-        upserted += await upsertContests(platform, upcoming);
+        const n = await upsertContests(platform, upcoming);
+        upserted += n;
+        sources.push(`adapter:${platform}:${upcoming.length}`);
       }
     } catch (err: unknown) {
       errors.push(
@@ -222,7 +294,7 @@ export async function refreshContestsFromAdapters(): Promise<{
   }
 
   await updateContestPhases();
-  return { upserted, errors };
+  return { upserted, errors, sources };
 }
 
 /**

@@ -14,11 +14,12 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2 px-4 py-12 text-center",
+        "flex flex-col items-center justify-center gap-1.5 px-4 py-10 text-center",
         className,
       )}
+      role="status"
     >
-      <p className="text-[var(--v2-text-base)] font-semibold text-[var(--v2-fg)]">
+      <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
         {title}
       </p>
       {description ? (

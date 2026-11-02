@@ -8,6 +8,7 @@ import { Button } from "@/v2/components/Button";
 import { Input } from "@/v2/components/Input";
 import { Skeleton } from "@/v2/components/Skeleton";
 import { EmptyState } from "@/v2/components/EmptyState";
+import { PageHeader } from "@/v2/components/PageHeader";
 import { v2Api } from "@/v2/lib/api";
 
 function JoinInner() {
@@ -27,7 +28,6 @@ function JoinInner() {
     try {
       const data = await v2Api.joinByCode(inviteCode.trim().toUpperCase());
       setTeamSlug(data.slug ?? null);
-      // Already-a-member returns ACTIVE/PENDING without error
       if (data.slug && data.status === "ACTIVE") {
         router.replace(`/teams/${data.slug}`);
         return;
@@ -40,9 +40,28 @@ function JoinInner() {
   }
 
   useEffect(() => {
-    if (codeParam) void join(codeParam);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codeParam]);
+    if (!codeParam) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await v2Api.joinByCode(codeParam.trim().toUpperCase());
+        if (cancelled) return;
+        setTeamSlug(data.slug ?? null);
+        if (data.slug && data.status === "ACTIVE") {
+          router.replace(`/teams/${data.slug}`);
+          return;
+        }
+        setStatus(data.status === "PENDING" ? "pending" : "success");
+      } catch (err) {
+        if (cancelled) return;
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Failed to join team");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [codeParam, router]);
 
   if (status === "loading") {
     return (
@@ -60,7 +79,9 @@ function JoinInner() {
           description={error ?? "Unknown error"}
           action={
             <Link href="/teams">
-              <Button variant="secondary">Back to teams</Button>
+              <Button variant="secondary" size="sm">
+                Back to teams
+              </Button>
             </Link>
           }
         />
@@ -73,7 +94,7 @@ function JoinInner() {
       <div className="mx-auto max-w-md px-4 py-16">
         <Card>
           <CardBody className="text-center">
-            <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-xl)] font-bold">
+            <h1 className="text-[var(--v2-text-xl)] font-semibold text-[var(--v2-fg)]">
               {status === "pending" ? "Request sent" : "You're in"}
             </h1>
             <p className="mt-2 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
@@ -84,13 +105,14 @@ function JoinInner() {
             {teamSlug ? (
               <Button
                 className="mt-4"
+                size="sm"
                 onClick={() => router.push(`/teams/${teamSlug}`)}
               >
                 Open team
               </Button>
             ) : (
               <Link href="/teams" className="mt-4 inline-block">
-                <Button>Teams</Button>
+                <Button size="sm">Teams</Button>
               </Link>
             )}
           </CardBody>
@@ -100,13 +122,11 @@ function JoinInner() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-10">
-      <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-2xl)] font-bold">
-        Join a team
-      </h1>
-      <p className="mt-1 mb-5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-        Enter the invite code from your team lead.
-      </p>
+    <div className="mx-auto max-w-md px-4 py-5 sm:py-7">
+      <PageHeader
+        title="Join a team"
+        description="Enter the invite code from your team lead."
+      />
       <Card>
         <CardBody className="flex flex-col gap-3">
           <Input
@@ -117,6 +137,7 @@ function JoinInner() {
             error={error ?? undefined}
           />
           <Button
+            size="sm"
             onClick={() => void join(code)}
             disabled={!code.trim()}
           >
@@ -124,7 +145,7 @@ function JoinInner() {
           </Button>
           <Link
             href="/teams"
-            className="text-center text-[var(--v2-text-sm)] text-[var(--v2-primary)]"
+            className="text-center text-[var(--v2-text-sm)] font-medium text-[var(--v2-primary)] no-underline"
           >
             Back to teams
           </Link>

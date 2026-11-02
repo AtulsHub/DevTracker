@@ -36,4 +36,14 @@
     background: var(--v2-primary-muted);
     color: var(--v2-primary);
   }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: var(--v2-duration);
+    transition-timing-function: var(--v2-ease);
+  }
 }

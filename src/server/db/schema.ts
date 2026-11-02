@@ -264,6 +264,13 @@ export const platformAccounts = pgTable("platform_accounts", {
   lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
   syncStatus: syncStatusEnum("sync_status").notNull().default("pending"),
   syncError: text("sync_error"),
+  /** Cached per-day submission counts for heatmaps (YYYY-MM-DD → count). */
+  activityCalendar: jsonb("activity_calendar").$type<Record<string, number>>(),
+  /**
+   * Platform-reported total solved (e.g. LeetCode submitStats).
+   * Used when local submission history is truncated by public APIs.
+   */
+  reportedSolvedCount: integer("reported_solved_count"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

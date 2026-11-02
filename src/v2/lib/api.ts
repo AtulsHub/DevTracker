@@ -50,10 +50,20 @@ export const v2Api = {
     api("/api/users/me", { method: "PATCH", body: JSON.stringify(body) }),
   contests: (q = "") =>
     api<{ contests: ContestDto[] }>(`/api/contests${q}`),
-  syncAll: () =>
+  refreshContests: () =>
+    api<{
+      ok: boolean;
+      upserted: number;
+      sources?: string[];
+      errors?: string[];
+    }>("/api/contests/refresh", { method: "POST" }),
+  syncAll: (opts?: { full?: boolean }) =>
     api<{ ok: boolean; synced: number; results: unknown[] }>(
       "/api/platforms/sync-all",
-      { method: "POST" },
+      {
+        method: "POST",
+        body: JSON.stringify({ full: opts?.full ?? true }),
+      },
     ),
   linkPlatform: (platform: string, handle: string) =>
     api(`/api/platforms/${platform}/link`, {

@@ -16,10 +16,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { upserted, errors } = await refreshContestsFromAdapters();
+    const { upserted, errors, sources } = await refreshContestsFromAdapters();
     return NextResponse.json({
       ok: true,
       upserted,
+      sources,
       errors: errors.length > 0 ? errors : undefined,
       timestamp: new Date().toISOString(),
     });

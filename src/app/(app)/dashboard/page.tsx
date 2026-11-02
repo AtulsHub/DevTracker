@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { DashboardScreen } from "@/v2/screens/DashboardScreen";
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
 
   const data = await loadDashboardData(session.user.id);
 
-  return (
+  const screen = (
     <DashboardScreen
       totalSolved={data.totalSolved}
       streak={data.streak}
@@ -30,6 +31,13 @@ export default async function DashboardPage() {
             : String(r.submittedAt),
       }))}
       heatmap={data.heatmap}
+      heatmapByPlatform={data.heatmapByPlatform}
+      heatmapAllTime={data.heatmapAllTime}
+      heatmapAllTimeByPlatform={data.heatmapAllTimeByPlatform}
+      heatmapPlatforms={data.heatmapPlatforms}
+      heatmapActiveYears={data.heatmapActiveYears}
     />
   );
+
+  return <Suspense fallback={screen}>{screen}</Suspense>;
 }

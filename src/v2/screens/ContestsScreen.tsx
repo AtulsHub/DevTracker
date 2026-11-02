@@ -1,117 +1,191 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/v2/components/Card";
 import { PlatformBadge } from "@/v2/components/Badge";
 import { Button } from "@/v2/components/Button";
-import { BottomSheet } from "@/v2/components/BottomSheet";
 import { EmptyState } from "@/v2/components/EmptyState";
+import { PageHeader } from "@/v2/components/PageHeader";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
-import type { ContestDto } from "@/v2/lib/api";
+import { v2Api, type ContestDto } from "@/v2/lib/api";
 import { cn } from "@/v2/lib/cn";
 
 type View = "agenda" | "calendar";
 
+const WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+function toDayKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDuration(seconds: number | null | undefined) {
+  if (seconds == null || !Number.isFinite(Number(seconds))) return null;
+  const mins = Math.round(Number(seconds) / 60);
+  if (mins < 60) return `${mins} minutes`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (m === 0) return h === 1 ? "1 hour" : `${h} hours`;
+  return `${h}h ${m}m`;
+}
+
 export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [view, setView] = useState<View>("agenda");
-  const [platforms, setPlatforms] = useState<string[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [selectedDay, setSelectedDay] = useState<string | null>(() =>
+    toDayKey(new Date()),
+  );
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refresh() {
+    setRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const r = await v2Api.refreshContests();
+      setRefreshMsg(
+        r.upserted > 0
+          ? `Synced ${r.upserted} contest update(s)`
+          : r.errors?.length
+            ? `Refresh finished with issues: ${r.errors[0]}`
+            : "No new contests found",
+      );
+      startTransition(() => router.refresh());
+    } catch (e) {
+      setRefreshMsg(e instanceof Error ? e.message : "Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     return contests
       .filter((c) =>
-        platforms.length === 0 ? true : platforms.includes(c.platform),
+        platformFilter === "all" ? true : c.platform === platformFilter,
       )
       .sort(
         (a, b) =>
           new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
       );
-  }, [contests, platforms]);
+  }, [contests, platformFilter]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, ContestDto[]>();
     for (const c of filtered) {
-      const key = new Date(c.startsAt).toLocaleDateString("en-CA"); // YYYY-MM-DD local-ish
+      const key = toDayKey(new Date(c.startsAt));
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(c);
     }
     return map;
   }, [filtered]);
 
-  const dayContests = selectedDay ? byDay.get(selectedDay) ?? [] : [];
+  const dayContests = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-      <header className="public-page-hero mb-4 flex flex-wrap items-end justify-between gap-4 rounded-none sm:rounded-[var(--v2-radius-xl)] sm:border sm:border-[var(--v2-border)]">
-        <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--v2-primary)]">
-            Calendar
-          </p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-[clamp(1.75rem,4vw,2.25rem)] font-bold tracking-tight text-[var(--v2-fg)]">
-            Contests
-          </h1>
-          <p className="mt-1 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-            Times shown in your local timezone
-          </p>
-        </div>
-        <div className="flex rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] p-1">
-          {(["agenda", "calendar"] as View[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setView(v)}
-              className={cn(
-                "min-h-9 rounded-[var(--v2-radius-sm)] px-3 text-[var(--v2-text-sm)] font-medium capitalize",
-                view === v
-                  ? "bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                  : "text-[var(--v2-fg-muted)]",
-              )}
+    <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
+      <PageHeader
+        title="Contests"
+        description="Upcoming contests across platforms, shown in your local timezone."
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={refreshing || pending}
+              onClick={() => void refresh()}
             >
-              {v}
-            </button>
-          ))}
-        </div>
-      </header>
+              <RefreshCw className="size-3.5" aria-hidden />
+              Sync
+            </Button>
+            <div className="flex rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] p-0.5">
+              {([
+                { id: "agenda" as const, label: "Agenda" },
+                { id: "calendar" as const, label: "Calendar" },
+              ]).map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setView(v.id)}
+                  className={cn(
+                    "min-h-8 rounded-[6px] px-3 text-[var(--v2-text-sm)] font-medium transition-colors duration-[var(--v2-duration)]",
+                    view === v.id
+                      ? "bg-[var(--v2-bg-muted)] text-[var(--v2-fg)]"
+                      : "text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)]",
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {LINKABLE_PLATFORMS.map((id) => {
-          const on = platforms.includes(id);
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() =>
-                setPlatforms((prev) =>
-                  on ? prev.filter((p) => p !== id) : [...prev, id],
-                )
-              }
-              className={cn(
-                "min-h-9 rounded-[var(--v2-radius-full)] border px-3 font-mono text-[11px] font-semibold",
-                on
-                  ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-fg-inverse)]"
-                  : "border-[var(--v2-border)] text-[var(--v2-fg-muted)]",
-              )}
-            >
-              {PLATFORMS[id].short}
-            </button>
-          );
-        })}
-        {platforms.length > 0 ? (
-          <button
-            type="button"
-            className="min-h-9 px-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]"
-            onClick={() => setPlatforms([])}
+      {refreshMsg ? (
+        <p
+          className="mb-4 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-muted)] px-3 py-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]"
+          role="status"
+        >
+          {refreshMsg}
+        </p>
+      ) : null}
+
+      <div className="mb-5 flex flex-wrap items-end gap-3">
+        <label className="flex min-w-[12rem] flex-col gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--v2-fg-subtle)]">
+            Platform
+          </span>
+          <select
+            value={platformFilter}
+            onChange={(e) => setPlatformFilter(e.target.value)}
+            className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] px-3 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
           >
-            Clear
-          </button>
-        ) : null}
+            <option value="all">All platforms</option>
+            {LINKABLE_PLATFORMS.map((id) => (
+              <option key={id} value={id}>
+                {PLATFORMS[id].label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="pb-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
+          {filtered.length} contest{filtered.length === 1 ? "" : "s"}
+        </p>
       </div>
 
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
             title="No contests match"
-            description="Try clearing filters or sync contests from the server."
+            description="Try another platform filter, or sync contests from aggregators."
+            action={
+              <Button
+                size="sm"
+                loading={refreshing || pending}
+                onClick={() => void refresh()}
+              >
+                Sync contests
+              </Button>
+            }
           />
         </Card>
       ) : view === "agenda" ? (
@@ -119,15 +193,18 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
           {[...byDay.entries()].map(([day, list]) => (
             <Card key={day}>
               <CardHeader>
-                <h2 className="font-mono text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                   {new Date(day + "T12:00:00").toLocaleDateString(undefined, {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
                   })}
                 </h2>
+                <span className="text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
+                  {list.length} contest{list.length === 1 ? "" : "s"}
+                </span>
               </CardHeader>
-              <CardBody className="space-y-3 pt-0">
+              <CardBody className="space-y-2 pt-0">
                 {list.map((c) => (
                   <ContestRow key={`${c.platform}-${c.externalId}`} contest={c} />
                 ))}
@@ -136,66 +213,70 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
           ))}
         </div>
       ) : (
-        <MonthCalendar
+        <DetailedMonthCalendar
+          cursor={cursor}
+          onCursorChange={setCursor}
           byDay={byDay}
-          onSelectDay={(d) => setSelectedDay(d)}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+          dayContests={dayContests}
         />
       )}
-
-      <BottomSheet
-        open={!!selectedDay}
-        onClose={() => setSelectedDay(null)}
-        title={
-          selectedDay
-            ? new Date(selectedDay + "T12:00:00").toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })
-            : undefined
-        }
-      >
-        {dayContests.length === 0 ? (
-          <EmptyState title="No contests this day" />
-        ) : (
-          <div className="space-y-3">
-            {dayContests.map((c) => (
-              <ContestRow key={`${c.platform}-${c.externalId}`} contest={c} />
-            ))}
-          </div>
-        )}
-      </BottomSheet>
     </div>
   );
 }
 
 function ContestRow({ contest: c }: { contest: ContestDto }) {
   const start = new Date(c.startsAt);
+  const end = c.durationSeconds
+    ? new Date(start.getTime() + Number(c.durationSeconds) * 1000)
+    : null;
+  const duration = formatDuration(c.durationSeconds);
   const ics = `/api/contests/ics?platform=${encodeURIComponent(c.platform)}`;
   return (
-    <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] p-3">
-      <div className="mb-1 flex flex-wrap items-center gap-2">
+    <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border-subtle)] bg-[var(--v2-bg)] p-3 transition-colors hover:border-[var(--v2-border)]">
+      <div className="mb-1.5 flex flex-wrap items-center gap-2">
         <PlatformBadge platform={c.platform} />
-        <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+        <p className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)]">
           {c.name}
         </p>
       </div>
-      <p className="font-mono text-[11px] text-[var(--v2-fg-subtle)]">
-        {start.toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-        {c.durationSeconds
-          ? ` · ${Math.round(Number(c.durationSeconds) / 60)} min`
-          : ""}
-      </p>
+      <dl className="grid gap-1 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)] sm:grid-cols-2">
+        <div>
+          <dt className="sr-only">Starts</dt>
+          <dd>
+            {start.toLocaleString(undefined, {
+              weekday: "short",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </dd>
+        </div>
+        {end ? (
+          <div>
+            <dt className="sr-only">Ends</dt>
+            <dd>
+              Ends{" "}
+              {end.toLocaleString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+              {duration ? ` · ${duration}` : ""}
+            </dd>
+          </div>
+        ) : duration ? (
+          <div>
+            <dd>Duration · {duration}</dd>
+          </div>
+        ) : null}
+      </dl>
       <div className="mt-3 flex flex-wrap gap-2">
         {c.url ? (
           <a href={c.url} target="_blank" rel="noopener noreferrer">
             <Button size="sm" variant="secondary">
-              Open
+              Open contest
             </Button>
           </a>
         ) : null}
@@ -209,71 +290,244 @@ function ContestRow({ contest: c }: { contest: ContestDto }) {
   );
 }
 
-function MonthCalendar({
+function DetailedMonthCalendar({
+  cursor,
+  onCursorChange,
   byDay,
+  selectedDay,
   onSelectDay,
+  dayContests,
 }: {
+  cursor: Date;
+  onCursorChange: (d: Date) => void;
   byDay: Map<string, ContestDto[]>;
+  selectedDay: string | null;
   onSelectDay: (day: string) => void;
+  dayContests: ContestDto[];
 }) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
   const first = new Date(year, month, 1);
   const startPad = first.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = toDayKey(new Date());
+
   const cells: Array<{ day: number | null; key: string }> = [];
   for (let i = 0; i < startPad; i++) cells.push({ day: null, key: `p-${i}` });
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     cells.push({ day: d, key });
   }
+  while (cells.length % 7 !== 0) {
+    cells.push({ day: null, key: `t-${cells.length}` });
+  }
+
+  const monthLabel = cursor.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  let monthContestCount = 0;
+  for (const [key, list] of byDay) {
+    if (key.startsWith(monthPrefix)) monthContestCount += list.length;
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="font-semibold">
-          {now.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-        </h2>
-      </CardHeader>
-      <CardBody>
-        <div className="mb-2 grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-[var(--v2-fg-subtle)]">
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <span key={`${d}-${i}`}>{d}</span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((c) => {
-            if (c.day == null) return <div key={c.key} className="min-h-14" />;
-            const list = byDay.get(c.key) ?? [];
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => onSelectDay(c.key)}
-                className="min-h-14 rounded-[var(--v2-radius-sm)] border border-[var(--v2-border)] bg-[var(--v2-bg)] p-1 text-left hover:border-[var(--v2-primary)]"
-              >
-                <span className="font-mono text-[11px] text-[var(--v2-fg-muted)]">
-                  {c.day}
-                </span>
-                <div className="mt-1 flex flex-wrap gap-0.5">
-                  {list.slice(0, 3).map((x) => (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+      <Card className="overflow-hidden">
+        <CardHeader className="gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label="Previous month"
+              onClick={() => onCursorChange(new Date(year, month - 1, 1))}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <div className="min-w-0 text-center sm:text-left">
+              <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                {monthLabel}
+              </h2>
+              <p className="text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
+                {monthContestCount} contest
+                {monthContestCount === 1 ? "" : "s"} this month
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label="Next month"
+              onClick={() => onCursorChange(new Date(year, month + 1, 1))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              const n = new Date();
+              onCursorChange(new Date(n.getFullYear(), n.getMonth(), 1));
+              onSelectDay(toDayKey(n));
+            }}
+          >
+            Today
+          </Button>
+        </CardHeader>
+        <CardBody className="pt-0">
+          <div className="mb-2 hidden grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-[var(--v2-fg-subtle)] sm:grid">
+            {WEEKDAYS.map((d) => (
+              <span key={d}>{d}</span>
+            ))}
+          </div>
+          <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-[var(--v2-fg-subtle)] sm:hidden">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <span key={d}>{d}</span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {cells.map((c) => {
+              if (c.day == null) {
+                return (
+                  <div
+                    key={c.key}
+                    className="min-h-[4.5rem] rounded-[var(--v2-radius-md)] bg-[var(--v2-bg-muted)]/40 sm:min-h-[6.5rem]"
+                  />
+                );
+              }
+              const list = byDay.get(c.key) ?? [];
+              const isSelected = selectedDay === c.key;
+              const isToday = todayKey === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => onSelectDay(c.key)}
+                  className={cn(
+                    "flex min-h-[4.5rem] flex-col rounded-[var(--v2-radius-md)] border p-1.5 text-left transition-colors sm:min-h-[6.5rem] sm:p-2",
+                    isSelected
+                      ? "border-[var(--v2-primary)] bg-[color-mix(in_srgb,var(--v2-primary)_8%,transparent)]"
+                      : "border-[var(--v2-border)] bg-[var(--v2-bg)] hover:bg-[var(--v2-surface-hover)]",
+                    isToday && !isSelected && "ring-1 ring-[var(--v2-primary)]/40",
+                  )}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-1">
                     <span
-                      key={`${x.platform}-${x.externalId}`}
-                      className="size-1.5 rounded-full"
-                      style={{
-                        background:
-                          PLATFORMS[x.platform as keyof typeof PLATFORMS]
-                            ?.colorVar ?? "var(--v2-primary)",
-                      }}
-                    />
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </CardBody>
-    </Card>
+                      className={cn(
+                        "inline-flex size-6 items-center justify-center rounded-full text-[12px] font-medium tabular-nums",
+                        isToday
+                          ? "bg-[var(--v2-primary)] text-white"
+                          : "text-[var(--v2-fg-muted)]",
+                      )}
+                    >
+                      {c.day}
+                    </span>
+                    {list.length > 0 ? (
+                      <span className="hidden text-[10px] text-[var(--v2-fg-subtle)] sm:inline">
+                        {list.length}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
+                    {list.slice(0, 3).map((x) => {
+                      const color =
+                        PLATFORMS[x.platform as keyof typeof PLATFORMS]
+                          ?.colorVar ?? "var(--v2-primary)";
+                      return (
+                        <div
+                          key={`${x.platform}-${x.externalId}`}
+                          className="hidden truncate rounded px-1 py-0.5 text-[10px] leading-tight text-[var(--v2-fg)] sm:block"
+                          style={{
+                            background: `color-mix(in srgb, ${color} 16%, transparent)`,
+                            borderLeft: `2px solid ${color}`,
+                          }}
+                          title={x.name}
+                        >
+                          {x.name}
+                        </div>
+                      );
+                    })}
+                    {list.length > 3 ? (
+                      <span className="hidden text-[10px] text-[var(--v2-fg-subtle)] sm:inline">
+                        +{list.length - 3} more
+                      </span>
+                    ) : null}
+                    {list.length > 0 ? (
+                      <div className="mt-auto flex flex-wrap gap-0.5 sm:hidden">
+                        {list.slice(0, 4).map((x) => (
+                          <span
+                            key={`${x.platform}-${x.externalId}`}
+                            className="size-1.5 rounded-full"
+                            style={{
+                              background:
+                                PLATFORMS[x.platform as keyof typeof PLATFORMS]
+                                  ?.colorVar ?? "var(--v2-primary)",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3 border-t border-[var(--v2-border-subtle)] pt-3">
+            {LINKABLE_PLATFORMS.map((id) => (
+              <div
+                key={id}
+                className="flex items-center gap-1.5 text-[11px] text-[var(--v2-fg-muted)]"
+              >
+                <span
+                  className="size-2 rounded-full"
+                  style={{ background: PLATFORMS[id].colorVar }}
+                />
+                {PLATFORMS[id].label}
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card className="xl:sticky xl:top-20 xl:self-start">
+        <CardHeader>
+          <div>
+            <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+              {selectedDay
+                ? new Date(selectedDay + "T12:00:00").toLocaleDateString(
+                    undefined,
+                    {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )
+                : "Select a day"}
+            </h2>
+            <p className="mt-0.5 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
+              {dayContests.length === 0
+                ? "No contests on this day"
+                : `${dayContests.length} contest${dayContests.length === 1 ? "" : "s"}`}
+            </p>
+          </div>
+        </CardHeader>
+        <CardBody className="space-y-2 pt-0">
+          {dayContests.length === 0 ? (
+            <EmptyState
+              title="Nothing scheduled"
+              description="Pick another day on the calendar, or sync for newer contests."
+              className="py-8"
+            />
+          ) : (
+            dayContests.map((c) => (
+              <ContestRow key={`${c.platform}-${c.externalId}`} contest={c} />
+            ))
+          )}
+        </CardBody>
+      </Card>
+    </div>
   );
 }

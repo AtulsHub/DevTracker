@@ -33,6 +33,12 @@ const envSchema = z.object({
   CLIST_API_KEY: z.string().optional(),
   CLIST_USERNAME: z.string().optional(),
 
+  // ── LeetCode (optional) ─────────────────────────────────────────────────────
+  // Session cookie for the linked LeetCode account — enables full submission
+  // history sync (public API only returns ~20 recent). Copy LEETCODE_SESSION
+  // from browser DevTools → Application → Cookies → leetcode.com
+  LEETCODE_SESSION: z.string().optional(),
+
   // ── Security ────────────────────────────────────────────────────────────────
   CRON_SECRET: z.string().optional(),
 

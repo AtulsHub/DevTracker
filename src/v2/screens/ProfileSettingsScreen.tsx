@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Card, CardBody, CardHeader } from "@/v2/components/Card";
 import { Button } from "@/v2/components/Button";
 import { Input } from "@/v2/components/Input";
+import { PageHeader } from "@/v2/components/PageHeader";
 import { v2Api } from "@/v2/lib/api";
 import { fileToAvatarDataUrl } from "@/v2/lib/avatar";
 import { useTheme } from "@/v2/shell/ThemeProvider";
@@ -93,39 +94,32 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 sm:py-6">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-2xl)] font-bold">
-            Your profile
-          </h1>
-          <p className="font-mono text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-            @{user.username}
-          </p>
-        </div>
-        <Link
-          href={`/u/${user.username}`}
-          className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-primary)] no-underline"
-        >
-          View public page →
-        </Link>
-      </div>
+    <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7">
+      <PageHeader
+        title="Settings"
+        description={`@${user.username} · manage your public profile and preferences`}
+        actions={
+          <Link href={`/u/${user.username}`}>
+            <Button size="sm" variant="secondary">
+              View public page
+            </Button>
+          </Link>
+        }
+      />
 
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold">Photo</h2>
+          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+            Photo
+          </h2>
         </CardHeader>
         <CardBody className="flex flex-wrap items-center gap-4 pt-0">
-          <div className="relative size-24 overflow-hidden rounded-[var(--v2-radius-lg)] bg-[var(--v2-primary-muted)]">
+          <div className="relative size-20 overflow-hidden rounded-full bg-[var(--v2-primary-muted)]">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt=""
-                className="size-full object-cover"
-              />
+              <img src={avatarUrl} alt="" className="size-full object-cover" />
             ) : (
-              <span className="flex size-full items-center justify-center font-[family-name:var(--font-display)] text-2xl font-bold text-[var(--v2-primary)]">
+              <span className="flex size-full items-center justify-center text-xl font-semibold text-[var(--v2-primary)]">
                 {(displayName || user.username).charAt(0).toUpperCase()}
               </span>
             )}
@@ -140,6 +134,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
             />
             <Button
               type="button"
+              size="sm"
               variant="secondary"
               loading={uploading}
               onClick={() => fileRef.current?.click()}
@@ -149,6 +144,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
             {avatarUrl ? (
               <Button
                 type="button"
+                size="sm"
                 variant="ghost"
                 onClick={() => setAvatarUrl("")}
               >
@@ -164,7 +160,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
 
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold">
+          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
             Public details
           </h2>
         </CardHeader>
@@ -187,7 +183,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
               onChange={(e) => setBio(e.target.value)}
               rows={4}
               maxLength={500}
-              className="min-h-24 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-fg)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--v2-primary)]"
+              className="min-h-24 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-fg)] outline-none transition-colors focus:border-[var(--v2-primary)] focus:ring-2 focus:ring-[var(--v2-primary-muted)]"
             />
           </label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -240,7 +236,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
                   e.target.value as "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE",
                 )
               }
-              className="min-h-11 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)]"
+              className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
             >
               <option value="PUBLIC">Public</option>
               <option value="FOLLOWERS_ONLY">Followers only</option>
@@ -257,7 +253,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
               {msg}
             </p>
           ) : null}
-          <Button loading={pending} onClick={() => void save()}>
+          <Button size="sm" loading={pending} onClick={() => void save()}>
             Save changes
           </Button>
         </CardBody>
@@ -265,7 +261,9 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
 
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold">Theme</h2>
+          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+            Theme
+          </h2>
         </CardHeader>
         <CardBody className="flex gap-2 pt-0">
           {(["light", "dark", "system"] as const).map((t) => (
@@ -274,10 +272,10 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
               type="button"
               onClick={() => setTheme(t)}
               className={cn(
-                "min-h-11 flex-1 rounded-[var(--v2-radius-md)] border capitalize",
+                "min-h-9 flex-1 rounded-[var(--v2-radius-md)] border text-[var(--v2-text-sm)] font-medium capitalize transition-colors duration-[var(--v2-duration)]",
                 theme === t
                   ? "border-[var(--v2-primary)] bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                  : "border-[var(--v2-border)] text-[var(--v2-fg-muted)]",
+                  : "border-[var(--v2-border)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
               )}
             >
               {t}
@@ -286,12 +284,17 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
         </CardBody>
       </Card>
 
-      <Card className="mb-4">
+      <Card>
         <CardBody className="flex flex-col gap-2">
-          <Button variant="secondary" onClick={() => router.push("/dashboard")}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => router.push("/dashboard")}
+          >
             Open dashboard
           </Button>
           <Button
+            size="sm"
             variant="danger"
             onClick={() => void signOut({ callbackUrl: "/" })}
           >

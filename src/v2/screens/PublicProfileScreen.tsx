@@ -3,8 +3,10 @@ import { Card, CardBody, CardHeader } from "@/v2/components/Card";
 import { PlatformBadge } from "@/v2/components/Badge";
 import { EmptyState } from "@/v2/components/EmptyState";
 import { Button } from "@/v2/components/Button";
+import { MetricCard } from "@/v2/components/MetricCard";
 import { PLATFORMS } from "@/v2/design/platforms";
 import { formatRelativeTime } from "@/lib/utils";
+import { Link2, Lock, Target } from "lucide-react";
 
 export type PublicProfileData = {
   locked?: boolean;
@@ -44,20 +46,24 @@ export function PublicProfileScreen(props: PublicProfileData) {
   if (locked) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16">
-        <div className="overflow-hidden rounded-[var(--v2-radius-xl)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]">
-          <div className="profile-cover h-24" />
-          <div className="px-5 pb-6 pt-4 text-center">
-            <h1 className="font-[family-name:var(--font-display)] text-[var(--v2-text-xl)] font-bold">
+        <Card>
+          <CardBody className="text-center">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-[var(--v2-bg-muted)] text-[var(--v2-fg-subtle)]">
+              <Lock className="size-5" aria-hidden />
+            </div>
+            <h1 className="text-[var(--v2-text-xl)] font-semibold text-[var(--v2-fg)]">
               This profile is private
             </h1>
             <p className="mt-2 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
               @{username} has not shared their stats publicly.
             </p>
             <Link href="/explore" className="mt-4 inline-block">
-              <Button variant="secondary">Back to Explore</Button>
+              <Button variant="secondary" size="sm">
+                Back to Explore
+              </Button>
             </Link>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -74,13 +80,15 @@ export function PublicProfileScreen(props: PublicProfileData) {
   ].filter(Boolean);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-6">
-      {/* Intro card — professional profile, not a LI clone */}
-      <article className="overflow-hidden rounded-[var(--v2-radius-xl)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] shadow-[var(--v2-shadow-sm)]">
-        <div className="profile-cover relative h-28 sm:h-36" aria-hidden />
+    <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
+      <article className="overflow-hidden rounded-[var(--v2-radius-lg)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]">
+        <div
+          className="h-24 border-b border-[var(--v2-border)] bg-[linear-gradient(135deg,var(--v2-primary-muted),transparent_60%),var(--v2-bg-muted)] sm:h-28"
+          aria-hidden
+        />
         <div className="relative px-4 pb-5 sm:px-6 sm:pb-6">
-          <div className="-mt-12 mb-3 flex flex-wrap items-end justify-between gap-3 sm:-mt-14">
-            <div className="size-[88px] overflow-hidden rounded-[var(--v2-radius-lg)] border-4 border-[var(--v2-bg-elevated)] bg-[var(--v2-primary-muted)] sm:size-[112px]">
+          <div className="-mt-10 mb-3 flex flex-wrap items-end justify-between gap-3 sm:-mt-12">
+            <div className="size-20 overflow-hidden rounded-full border-4 border-[var(--v2-bg-elevated)] bg-[var(--v2-primary-muted)] sm:size-24">
               {props.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -89,7 +97,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
                   className="size-full object-cover"
                 />
               ) : (
-                <span className="flex size-full items-center justify-center font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--v2-primary)]">
+                <span className="flex size-full items-center justify-center text-2xl font-semibold text-[var(--v2-primary)]">
                   {name.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -109,14 +117,14 @@ export function PublicProfileScreen(props: PublicProfileData) {
             </div>
           </div>
 
-          <h1 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-tight text-[var(--v2-fg)]">
+          <h1 className="text-[1.625rem] font-semibold tracking-tight text-[var(--v2-fg)]">
             {name}
           </h1>
           <p className="font-mono text-[var(--v2-text-sm)] text-[var(--v2-fg-subtle)]">
             @{username}
           </p>
           {props.headline ? (
-            <p className="mt-2 max-w-2xl text-[var(--v2-text-base)] text-[var(--v2-fg)]">
+            <p className="mt-2 max-w-2xl text-[var(--v2-text-sm)] text-[var(--v2-fg)]">
               {props.headline}
             </p>
           ) : null}
@@ -125,25 +133,6 @@ export function PublicProfileScreen(props: PublicProfileData) {
               {metaBits.join(" · ")}
             </p>
           ) : null}
-
-          <div className="mt-3 flex flex-wrap gap-4 text-[var(--v2-text-sm)]">
-            {typeof props.totalSolved === "number" ? (
-              <span>
-                <strong className="font-mono text-[var(--v2-primary)]">
-                  {props.totalSolved}
-                </strong>{" "}
-                <span className="text-[var(--v2-fg-muted)]">solved</span>
-              </span>
-            ) : null}
-            {props.platforms?.length ? (
-              <span>
-                <strong className="font-mono text-[var(--v2-primary)]">
-                  {props.platforms.length}
-                </strong>{" "}
-                <span className="text-[var(--v2-fg-muted)]">platforms</span>
-              </span>
-            ) : null}
-          </div>
 
           {(props.websiteUrl || props.githubUrl) && (
             <div className="mt-3 flex flex-wrap gap-3">
@@ -172,12 +161,27 @@ export function PublicProfileScreen(props: PublicProfileData) {
         </div>
       </article>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
+        <MetricCard
+          label="Total solved"
+          value={(props.totalSolved ?? 0).toLocaleString()}
+          icon={Target}
+        />
+        <MetricCard
+          label="Platforms"
+          value={props.platforms?.length ?? 0}
+          icon={Link2}
+        />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-4">
           {props.bio ? (
             <Card>
               <CardHeader>
-                <h2 className="text-[var(--v2-text-sm)] font-semibold">About</h2>
+                <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                  About
+                </h2>
               </CardHeader>
               <CardBody className="pt-0">
                 <p className="whitespace-pre-wrap text-[var(--v2-text-sm)] leading-relaxed text-[var(--v2-fg)]">
@@ -189,13 +193,13 @@ export function PublicProfileScreen(props: PublicProfileData) {
 
           <Card>
             <CardHeader>
-              <h2 className="text-[var(--v2-text-sm)] font-semibold">
+              <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                 Platforms
               </h2>
             </CardHeader>
-            <CardBody className="space-y-3 pt-0">
+            <CardBody className="space-y-2 pt-0">
               {!props.platforms?.length ? (
-                <EmptyState title="No platforms linked yet" />
+                <EmptyState title="No platforms linked yet" className="py-8" />
               ) : (
                 props.platforms.map((p) => {
                   const meta = PLATFORMS[p.platform as keyof typeof PLATFORMS];
@@ -203,9 +207,6 @@ export function PublicProfileScreen(props: PublicProfileData) {
                     <div
                       key={p.platform}
                       className="flex items-start justify-between gap-3 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
-                      style={{
-                        borderLeft: `3px solid ${meta?.colorVar ?? "var(--v2-primary)"}`,
-                      }}
                     >
                       <div>
                         <PlatformBadge platform={p.platform} />
@@ -224,7 +225,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
                         ) : null}
                       </div>
                       <div className="text-right">
-                        <p className="font-mono text-xl font-bold text-[var(--v2-primary)]">
+                        <p className="font-mono text-xl font-semibold tabular-nums text-[var(--v2-fg)]">
                           {p.solvedCount}
                         </p>
                         <p className="text-[10px] uppercase text-[var(--v2-fg-subtle)]">
@@ -245,15 +246,15 @@ export function PublicProfileScreen(props: PublicProfileData) {
 
           <Card>
             <CardHeader>
-              <h2 className="text-[var(--v2-text-sm)] font-semibold">
+              <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                 Recent activity
               </h2>
             </CardHeader>
             <CardBody className="pt-0">
               {!props.recent?.length ? (
-                <EmptyState title="No recent activity to show" />
+                <EmptyState title="No recent activity to show" className="py-8" />
               ) : (
-                <ul className="divide-y divide-[var(--v2-border)]">
+                <ul className="divide-y divide-[var(--v2-border-subtle)]">
                   {props.recent.map((s) => (
                     <li
                       key={s.id}
@@ -274,9 +275,9 @@ export function PublicProfileScreen(props: PublicProfileData) {
                             s.title
                           )}
                         </p>
-                        <p className="font-mono text-[11px] text-[var(--v2-fg-subtle)]">
-                          {s.platform}
-                        </p>
+                        <div className="mt-1">
+                          <PlatformBadge platform={s.platform} />
+                        </div>
                       </div>
                       <time className="shrink-0 font-mono text-[11px] text-[var(--v2-fg-subtle)]">
                         {formatRelativeTime(s.submittedAt)}
@@ -293,7 +294,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
           {skillList.length > 0 ? (
             <Card>
               <CardHeader>
-                <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                   Focus areas
                 </h2>
               </CardHeader>
@@ -301,7 +302,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
                 {skillList.map((s) => (
                   <span
                     key={s}
-                    className="rounded-[var(--v2-radius-sm)] bg-[var(--v2-bg-muted)] px-2.5 py-1 text-[var(--v2-text-xs)] font-medium text-[var(--v2-fg)]"
+                    className="rounded-[var(--v2-radius-md)] bg-[var(--v2-bg-muted)] px-2.5 py-1 text-[var(--v2-text-xs)] font-medium text-[var(--v2-fg)]"
                   >
                     {s}
                   </span>
@@ -312,7 +313,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
 
           <Card>
             <CardHeader>
-              <h2 className="text-[var(--v2-text-sm)] font-semibold">
+              <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                 Snapshot
               </h2>
             </CardHeader>

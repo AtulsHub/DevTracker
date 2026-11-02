@@ -52,8 +52,9 @@ export interface NormalizedSubmission {
     externalId: string;
     title: string;
     url?: string;
-    difficultyLabel?: string; // e.g. 'Easy', 'Medium'
-    rating?: number;          // e.g. CF rating 1500
+    /** e.g. LeetCode Easy/Medium/Hard */
+    difficultyLabel?: string;
+    rating?: number; // e.g. CF rating 1500
     tags?: string[];
   };
   verdict: Verdict;
@@ -123,6 +124,14 @@ export interface PlatformAdapter {
     handle: string,
     since: Date
   ): Promise<NormalizedSubmission[]>;
+
+  /**
+   * Optional full activity calendar (all years) for heatmaps.
+   * Used when recent-submission APIs are truncated (e.g. LeetCode).
+   */
+  fetchActivityCalendar?(
+    handle: string,
+  ): Promise<Record<string, number>>;
 
   /**
    * Fetch the user's full contest participation history.

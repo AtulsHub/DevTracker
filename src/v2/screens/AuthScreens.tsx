@@ -62,7 +62,7 @@ export function SignInScreen() {
       <OAuthButtons callbackUrl={callbackUrl} />
       <p className="mt-4 text-center text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
         No account?{" "}
-        <Link href="/sign-up" className="text-[var(--v2-primary)]">
+        <Link href="/sign-up" className="font-medium text-[var(--v2-primary)]">
           Create one
         </Link>
       </p>
@@ -134,7 +134,7 @@ export function SignUpScreen() {
       <OAuthButtons callbackUrl="/dashboard" />
       <p className="mt-4 text-center text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
         Already have an account?{" "}
-        <Link href="/sign-in" className="text-[var(--v2-primary)]">
+        <Link href="/sign-in" className="font-medium text-[var(--v2-primary)]">
           Sign in
         </Link>
       </p>
@@ -153,19 +153,22 @@ function AuthShell({
 }) {
   return (
     <div className="relative mx-auto flex min-h-[70dvh] w-full max-w-md flex-col justify-center px-4 py-8">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(ellipse_at_top,var(--v2-primary-muted),transparent_70%)]"
-        aria-hidden
-      />
-      <p className="relative font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--v2-primary)]">
-        DevTrack
-      </p>
-      <h1 className="relative mt-3 font-[family-name:var(--font-display)] text-[clamp(1.5rem,4vw,1.85rem)] font-bold tracking-tight text-[var(--v2-fg)]">
-        {title}
-      </h1>
-      <p className="relative mb-5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-        {subtitle}
-      </p>
+      <div className="relative mb-6">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-white">
+            DT
+          </span>
+          <span className="text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--v2-fg)]">
+            DevTrack
+          </span>
+        </div>
+        <h1 className="mt-5 text-[1.5rem] font-semibold tracking-tight text-[var(--v2-fg)]">
+          {title}
+        </h1>
+        <p className="mt-1 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+          {subtitle}
+        </p>
+      </div>
       <Card className="relative">
         <CardBody>{children}</CardBody>
       </Card>

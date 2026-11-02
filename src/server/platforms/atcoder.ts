@@ -159,7 +159,11 @@ export const atcoderAdapter: PlatformAdapter = {
     const fromSecond = Math.max(0, Math.floor(since.getTime() / 1000));
     // Bound initial window to avoid massive downloads; cover heatmap
     const nowSec = Math.floor(Date.now() / 1000);
-    const fromSecBound = fromSecond <= 0 ? Math.max(0, nowSec - 400 * 24 * 60 * 60) : fromSecond;
+    // Full history for heatmaps (kenkoooo supports from_second paging via window)
+    const fromSecBound =
+      fromSecond <= 0
+        ? Math.max(0, nowSec - 3650 * 24 * 60 * 60)
+        : fromSecond;
     const subs = await fetchJson<AtCoderSubmission[]>(
       `${KENKOOO_BASE}/atcoder-api/v3/user/submissions?user=${encodeURIComponent(handle)}&from_second=${fromSecBound}`
     );

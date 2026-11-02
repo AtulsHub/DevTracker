@@ -257,10 +257,10 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-3 px-4 py-6">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
+      <div className="mx-auto max-w-[var(--v2-content-max)] space-y-3 px-4 py-7 sm:px-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
@@ -273,7 +273,9 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           description={error ?? "This team could not be loaded."}
           action={
             <Link href="/teams">
-              <Button variant="secondary">Back to teams</Button>
+              <Button variant="secondary" size="sm">
+                Back to teams
+              </Button>
             </Link>
           }
         />
@@ -294,18 +296,18 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <Link
         href="/teams"
-        className="text-[var(--v2-text-sm)] text-[var(--v2-primary)] no-underline"
+        className="text-[var(--v2-text-xs)] font-medium text-[var(--v2-fg-muted)] no-underline transition-colors hover:text-[var(--v2-fg)]"
       >
         ← Teams
       </Link>
 
-      <header className="mt-3 mb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-tight">
+      <header className="mt-3 mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[1.625rem] font-semibold tracking-tight text-[var(--v2-fg)]">
               {team.name}
             </h1>
             {team.description ? (
@@ -320,33 +322,42 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {!isMember && meId ? (
-              <Button loading={busy} onClick={() => void requestJoin()}>
+              <Button size="sm" loading={busy} onClick={() => void requestJoin()}>
                 Request to join
               </Button>
             ) : null}
             {!meId ? (
               <Link href="/sign-up">
-                <Button>Sign up to join</Button>
+                <Button size="sm">Sign up to join</Button>
               </Link>
             ) : null}
             {isLeader ? (
               <>
-                <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setInviteOpen(true)}
+                >
                   Add member
                 </Button>
-                <Button onClick={() => setTargetOpen(true)}>Set target</Button>
+                <Button size="sm" onClick={() => setTargetOpen(true)}>
+                  Set target
+                </Button>
               </>
             ) : null}
           </div>
         </div>
         {msg ? (
-          <p className="mt-3 text-[var(--v2-text-sm)] text-[var(--v2-primary)]">
+          <p
+            className="mt-3 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-muted)] px-3 py-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]"
+            role="status"
+          >
             {msg}
           </p>
         ) : null}
       </header>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--v2-border)] pb-px">
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-[var(--v2-border)]">
         {tabs
           .filter((t) => !t.hide)
           .map((t) => (
@@ -355,10 +366,10 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
               type="button"
               onClick={() => setTab(t.id)}
               className={cn(
-                "min-h-10 shrink-0 border-b-2 px-3 text-[var(--v2-text-sm)] font-medium",
+                "min-h-9 shrink-0 border-b-2 px-3 text-[var(--v2-text-sm)] font-medium transition-colors duration-[var(--v2-duration)]",
                 tab === t.id
-                  ? "border-[var(--v2-primary)] text-[var(--v2-primary)]"
-                  : "border-transparent text-[var(--v2-fg-muted)]",
+                  ? "border-[var(--v2-primary)] text-[var(--v2-fg)]"
+                  : "border-transparent text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)]",
               )}
             >
               {t.label}
@@ -371,7 +382,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           {isLeader && team.inviteCode ? (
             <Card>
               <CardHeader>
-                <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                   Invite people
                 </h2>
               </CardHeader>
@@ -380,10 +391,14 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                   Share this code or link. For private teams, joiners wait for
                   your approval.
                 </p>
-                <p className="font-mono text-[var(--v2-text-xl)] font-bold tracking-widest text-[var(--v2-fg)]">
+                <p className="font-mono text-[var(--v2-text-xl)] font-semibold tracking-widest text-[var(--v2-fg)]">
                   {team.inviteCode}
                 </p>
-                <Button variant="secondary" onClick={() => void copyInvite()}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void copyInvite()}
+                >
                   Copy invite link
                 </Button>
               </CardBody>
@@ -392,13 +407,13 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
 
           <Card>
             <CardHeader>
-              <h2 className="text-[var(--v2-text-sm)] font-semibold">
+              <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                 Targets snapshot
               </h2>
               {isMember ? (
                 <button
                   type="button"
-                  className="text-[var(--v2-text-xs)] text-[var(--v2-primary)]"
+                  className="text-[var(--v2-text-xs)] font-medium text-[var(--v2-primary)] hover:underline"
                   onClick={() => setTab("targets")}
                 >
                   View all
@@ -420,7 +435,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                   }
                   action={
                     isLeader ? (
-                      <Button onClick={() => setTargetOpen(true)}>
+                      <Button size="sm" onClick={() => setTargetOpen(true)}>
                         Set target
                       </Button>
                     ) : undefined
@@ -441,11 +456,11 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       {tab === "members" ? (
         <Card>
           <CardHeader>
-            <h2 className="text-[var(--v2-text-sm)] font-semibold">
+            <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
               Members ({members.length})
             </h2>
           </CardHeader>
-          <CardBody className="divide-y divide-[var(--v2-border)] p-0">
+          <CardBody className="divide-y divide-[var(--v2-border-subtle)] p-0">
             {members.length === 0 ? (
               <p className="p-4 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
                 No members listed.
@@ -469,7 +484,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                       ) : (
                         <Link
                           href={`/u/${m.user.username}`}
-                          className="font-medium text-[var(--v2-primary)] no-underline"
+                          className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)] no-underline hover:text-[var(--v2-primary)]"
                         >
                           {m.user.displayName ?? `@${m.user.username}`}
                         </Link>
@@ -512,11 +527,11 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       {tab === "requests" ? (
         <Card>
           <CardHeader>
-            <h2 className="text-[var(--v2-text-sm)] font-semibold">
+            <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
               Pending requests
             </h2>
           </CardHeader>
-          <CardBody className="divide-y divide-[var(--v2-border)] p-0">
+          <CardBody className="divide-y divide-[var(--v2-border-subtle)] p-0">
             {requests.length === 0 ? (
               <EmptyState title="No pending requests" />
             ) : (
@@ -561,7 +576,9 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
         <div className="flex flex-col gap-4">
           {isLeader ? (
             <div className="flex justify-end">
-              <Button onClick={() => setTargetOpen(true)}>New target</Button>
+              <Button size="sm" onClick={() => setTargetOpen(true)}>
+                New target
+              </Button>
             </div>
           ) : null}
           {targets.length === 0 ? (
@@ -582,7 +599,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       {tab === "board" ? (
         <Card>
           <CardHeader>
-            <h2 className="text-[var(--v2-text-sm)] font-semibold">
+            <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
               Leaderboard
             </h2>
             <div className="flex gap-1">
@@ -592,10 +609,10 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                   type="button"
                   onClick={() => setBoardRange(r)}
                   className={cn(
-                    "rounded-[var(--v2-radius-sm)] px-2 py-1 text-[11px] font-medium capitalize",
+                    "rounded-[var(--v2-radius-md)] px-2 py-1 text-[11px] font-medium capitalize transition-colors duration-[var(--v2-duration)]",
                     boardRange === r
-                      ? "bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                      : "text-[var(--v2-fg-subtle)]",
+                      ? "bg-[var(--v2-bg-muted)] text-[var(--v2-fg)]"
+                      : "text-[var(--v2-fg-subtle)] hover:text-[var(--v2-fg)]",
                   )}
                 >
                   {r}
@@ -603,7 +620,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
               ))}
             </div>
           </CardHeader>
-          <CardBody className="divide-y divide-[var(--v2-border)] p-0">
+          <CardBody className="divide-y divide-[var(--v2-border-subtle)] p-0">
             {board.length === 0 ? (
               <EmptyState title="No activity in this range yet" />
             ) : (
@@ -628,7 +645,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                       </p>
                     </div>
                   </div>
-                  <p className="font-mono font-bold text-[var(--v2-primary)]">
+                  <p className="font-mono font-semibold tabular-nums text-[var(--v2-fg)]">
                     {row.totalSolved}
                   </p>
                 </div>
@@ -653,8 +670,9 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           Adds them immediately. Or share the invite code so they request to
           join.
         </p>
-        <Button
+          <Button
           className="mt-4 w-full"
+          size="sm"
           loading={busy}
           onClick={() => void addByUsername()}
         >
@@ -692,7 +710,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
             Assigned to every active member. Progress updates from synced
             solves.
           </p>
-          <Button loading={busy} onClick={() => void createTarget()}>
+          <Button size="sm" loading={busy} onClick={() => void createTarget()}>
             Create target
           </Button>
         </div>
@@ -731,7 +749,7 @@ function TargetCard({
             </p>
           </div>
           {target.progress?.isCompleted ? (
-            <span className="rounded-[var(--v2-radius-sm)] bg-[var(--v2-primary-muted)] px-2 py-0.5 text-[11px] font-semibold text-[var(--v2-primary)]">
+            <span className="rounded-[var(--v2-radius-full)] bg-[var(--v2-success)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--v2-success)]">
               Done
             </span>
           ) : null}

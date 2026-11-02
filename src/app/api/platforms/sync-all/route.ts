@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { syncAccount } from "@/server/services/sync";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -51,8 +51,17 @@ export async function POST(req: Request) {
     error?: string;
   }> = [];
 
+  let forceFull = false;
+  try {
+    const body = (await req.json()) as { full?: boolean };
+    forceFull = Boolean(body?.full);
+  } catch {
+    // no body — incremental / stale-based full
+  }
+
   for (const account of accounts) {
     if (
+      !forceFull &&
       account.lastSyncedAt &&
       account.lastSyncedAt.getTime() > Date.now() - 5 * 60_000
     ) {
@@ -67,8 +76,10 @@ export async function POST(req: Request) {
     }
 
     try {
-      // Prefer full backfill when never synced or stale (>1 day) so dashboard fills
+      // Prefer full backfill when never synced, stale, or explicitly requested
+      // so heatmaps pull complete calendars (esp. LeetCode).
       const needsFull =
+        forceFull ||
         !account.lastSyncedAt ||
         account.lastSyncedAt.getTime() < Date.now() - 24 * 60 * 60 * 1000;
       const r = await syncAccount(account.id, { full: needsFull });
