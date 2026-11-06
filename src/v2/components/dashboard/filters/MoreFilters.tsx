@@ -25,7 +25,7 @@ function ToggleChip({
       className={cn(
         "min-h-7 rounded-[var(--v2-radius-md)] border px-2.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
         pressed
-          ? "border-transparent bg-[var(--v2-primary)] text-white"
+          ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
           : "border-[var(--v2-border)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
       )}
     >
@@ -98,7 +98,7 @@ export function MoreFilters({
         <SlidersHorizontal className="size-3.5" aria-hidden />
         More filters
         {activeCount > 0 ? (
-          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--v2-primary)] px-1 text-[10px] text-white">
+          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--v2-primary)] px-1 text-[10px] text-[var(--v2-on-primary)]">
             {activeCount}
           </span>
         ) : null}

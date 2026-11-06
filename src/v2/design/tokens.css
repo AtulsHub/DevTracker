@@ -1,51 +1,68 @@
 /**
- * DevTrack design tokens — Linear / Vercel inspired.
- * Dark is the primary product surface; light remains supported.
+ * DevTrack design tokens
+ * Light: cool mist canvas + teal brand (not flat white / purple-on-white)
+ * Dark: deep zinc product surface + violet accents
  */
-:root {
-  /* Brand */
-  --v2-primary: #7c3aed;
-  --v2-primary-hover: #6d28d9;
-  --v2-primary-muted: rgba(124, 58, 237, 0.12);
-  --v2-accent: #8b5cf6;
-  --v2-accent-hover: #7c3aed;
-  --v2-accent-muted: rgba(139, 92, 246, 0.12);
+:root,
+[data-theme="light"] {
+  /* Brand — indigo CTAs on mist (no teal/green buttons) */
+  --v2-primary: #4338ca;
+  --v2-primary-hover: #3730a3;
+  --v2-primary-muted: rgba(67, 56, 202, 0.12);
+  --v2-on-primary: #ffffff;
+  --v2-accent: #db2777;
+  --v2-accent-hover: #be185d;
+  --v2-accent-muted: rgba(219, 39, 119, 0.12);
+  --v2-on-accent: #ffffff; /* white label on accent fills */
 
-  /* Surfaces */
-  --v2-bg: #fafafa;
-  --v2-bg-elevated: #ffffff;
-  --v2-bg-muted: #f4f4f5;
-  --v2-surface-hover: #f4f4f5;
-  --v2-border: #e4e4e7;
-  --v2-border-subtle: #f4f4f5;
-  --v2-border-strong: #d4d4d8;
+  /* Surfaces — cool mist hierarchy (never pure #fff page canvas) */
+  --v2-bg: #e8eef6;
+  --v2-bg-elevated: #f5f8fc;
+  --v2-bg-muted: #dce5f0;
+  --v2-surface-hover: #d2dceb;
+  --v2-border: #c5d0e0;
+  --v2-border-subtle: #d8e0ec;
+  --v2-border-strong: #9aabc4;
 
-  /* Text */
-  --v2-fg: #09090b;
-  --v2-fg-muted: #71717a;
-  --v2-fg-subtle: #a1a1aa;
-  --v2-fg-inverse: #fafafa;
+  /* Atmosphere helpers */
+  --v2-bg-glow: radial-gradient(
+      120% 80% at 8% -10%,
+      color-mix(in srgb, var(--v2-primary) 10%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      90% 70% at 100% 0%,
+      color-mix(in srgb, #38bdf8 12%, transparent),
+      transparent 48%
+    ),
+    linear-gradient(180deg, #eef3f9 0%, var(--v2-bg) 42%, #e2e9f3 100%);
+
+  /* Text — ink on mist */
+  --v2-fg: #0f172a;
+  --v2-fg-muted: #475569;
+  --v2-fg-subtle: #64748b;
+  --v2-fg-inverse: #f8fafc;
 
   /* Semantic */
-  --v2-success: #16a34a;
-  --v2-warning: #d97706;
+  --v2-success: #15803d;
+  --v2-warning: #c2410c;
   --v2-danger: #dc2626;
-  --v2-info: #2563eb;
+  --v2-info: #0369a1;
 
   /* Platforms */
   --v2-cf: #1a73e8;
-  --v2-lc: #ffa116;
-  --v2-hr: #2ec866;
-  --v2-ac: #111111;
+  --v2-lc: #e8910d;
+  --v2-hr: #16a34a;
+  --v2-ac: #1e293b;
   --v2-cc: #5b4638;
   --v2-gfg: #2f8d46;
 
-  /* Heatmap — LeetCode / GitHub greens */
-  --v2-heat-0: #ebedf0;
-  --v2-heat-1: #9be9a8;
-  --v2-heat-2: #40c463;
-  --v2-heat-3: #30a14e;
-  --v2-heat-4: #216e39;
+  /* Heatmap */
+  --v2-heat-0: #d8e2ee;
+  --v2-heat-1: #86efac;
+  --v2-heat-2: #4ade80;
+  --v2-heat-3: #22c55e;
+  --v2-heat-4: #15803d;
 
   /* Spacing (4px base) */
   --v2-space-1: 0.25rem;
@@ -65,10 +82,13 @@
   --v2-radius-xl: 12px;
   --v2-radius-full: 9999px;
 
-  /* Shadows */
-  --v2-shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.04);
-  --v2-shadow-md: 0 4px 12px rgba(9, 9, 11, 0.08);
-  --v2-shadow-lg: 0 12px 32px rgba(9, 9, 11, 0.12);
+  /* Shadows — cool tinted depth */
+  --v2-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 0 0 1px rgba(148, 163, 184, 0.12);
+  --v2-shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08),
+    0 2px 4px rgba(15, 118, 110, 0.04);
+  --v2-shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12),
+    0 4px 12px rgba(15, 118, 110, 0.06);
 
   /* Type */
   --v2-font-sans: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
@@ -100,12 +120,15 @@
 }
 
 [data-theme="dark"] {
-  --v2-primary: #8b5cf6;
-  --v2-primary-hover: #a78bfa;
-  --v2-primary-muted: rgba(139, 92, 246, 0.14);
-  --v2-accent: #8b5cf6;
-  --v2-accent-hover: #a78bfa;
-  --v2-accent-muted: rgba(139, 92, 246, 0.14);
+  /* Brand — lighter fills so CTA labels stay black */
+  --v2-primary: #a78bfa;
+  --v2-primary-hover: #c4b5fd;
+  --v2-primary-muted: rgba(167, 139, 250, 0.18);
+  --v2-on-primary: #0a0a0a;
+  --v2-accent: #c8f542;
+  --v2-accent-hover: #d9f99d;
+  --v2-accent-muted: rgba(200, 245, 66, 0.16);
+  --v2-on-accent: #0a0a0a;
 
   --v2-bg: #09090b;
   --v2-bg-elevated: #101013;
@@ -114,6 +137,18 @@
   --v2-border: #27272a;
   --v2-border-subtle: #1f1f23;
   --v2-border-strong: #3f3f46;
+
+  --v2-bg-glow: radial-gradient(
+      100% 70% at 0% 0%,
+      color-mix(in srgb, var(--v2-primary) 16%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      80% 60% at 100% 0%,
+      color-mix(in srgb, var(--v2-accent) 8%, transparent),
+      transparent 45%
+    ),
+    var(--v2-bg);
 
   --v2-fg: #fafafa;
   --v2-fg-muted: #a1a1aa;
@@ -125,7 +160,12 @@
   --v2-danger: #ef4444;
   --v2-info: #60a5fa;
 
+  --v2-cf: #60a5fa;
+  --v2-lc: #fbbf24;
+  --v2-hr: #4ade80;
   --v2-ac: #e4e4e7;
+  --v2-cc: #d6b89c;
+  --v2-gfg: #4ade80;
 
   --v2-heat-0: #161b22;
   --v2-heat-1: #0e4429;

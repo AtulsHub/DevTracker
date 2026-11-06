@@ -56,7 +56,7 @@ export function FilterBar({
             className={cn(
               "min-h-8 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
               api.filters.compare
-                ? "border-transparent bg-[var(--v2-primary)] text-white"
+                ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
                 : "border-[var(--v2-border)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
               !canCompare && "cursor-not-allowed opacity-50",
             )}
@@ -98,7 +98,7 @@ export function FilterBar({
             <Filter className="size-3.5" aria-hidden />
             Filters
             {api.activeFilterCount > 0 ? (
-              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--v2-primary)] px-1.5 text-[10px] text-white">
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--v2-primary)] px-1.5 text-[10px] text-[var(--v2-on-primary)]">
                 {api.activeFilterCount}
               </span>
             ) : null}
@@ -127,7 +127,7 @@ export function FilterBar({
         {controls}
         <button
           type="button"
-          className="mt-4 w-full min-h-10 rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-sm)] font-medium text-white"
+          className="mt-4 w-full min-h-10 rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-sm)] font-medium text-[var(--v2-on-primary)]"
           onClick={() => setMobileOpen(false)}
         >
           Done

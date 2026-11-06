@@ -58,7 +58,7 @@ export function LandingScreen({
           <div className="landing-rise landing-rise-delay-3 mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/sign-up"
-              className="inline-flex min-h-12 items-center gap-2 bg-[var(--land-accent)] px-6 text-[0.95rem] font-semibold text-[var(--land-accent-fg)] no-underline transition-transform duration-200 hover:-translate-y-0.5"
+              className="landing-cta inline-flex min-h-12 items-center gap-2 px-6 text-[0.95rem] font-semibold no-underline transition-transform duration-200 hover:-translate-y-0.5"
             >
               Start free
               <ArrowRight className="size-4" aria-hidden />
@@ -244,7 +244,7 @@ export function LandingScreen({
           <div className="mt-10 flex flex-wrap gap-3">
             <Link
               href="/sign-up"
-              className="inline-flex min-h-12 items-center gap-2 bg-[var(--land-accent)] px-6 text-[0.95rem] font-semibold text-[var(--land-accent-fg)] no-underline transition-transform duration-200 hover:-translate-y-0.5"
+              className="landing-cta inline-flex min-h-12 items-center gap-2 px-6 text-[0.95rem] font-semibold no-underline transition-transform duration-200 hover:-translate-y-0.5"
             >
               Create account
               <ArrowRight className="size-4" aria-hidden />

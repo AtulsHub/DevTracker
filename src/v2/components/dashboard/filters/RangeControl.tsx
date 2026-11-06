@@ -114,7 +114,7 @@ export function RangeControl({
             </label>
             <button
               type="button"
-              className="mt-1 min-h-8 rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-xs)] font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]"
+              className="mt-1 min-h-8 rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-xs)] font-medium text-[var(--v2-on-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]"
               onClick={() => {
                 onChange("custom", { from, to });
                 setOpen(false);

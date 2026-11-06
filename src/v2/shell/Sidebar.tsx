@@ -109,7 +109,7 @@ export function Sidebar({
   return (
     <>
       {/* Tablet icon rail */}
-      <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-rail-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] md:flex lg:hidden">
+      <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-rail-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/90 backdrop-blur-md md:flex lg:hidden">
         <Link
           href={signedIn ? "/dashboard" : "/"}
           className="flex h-[var(--v2-topbar-h)] items-center justify-center font-mono text-sm font-bold text-[var(--v2-primary)] no-underline"
@@ -134,13 +134,13 @@ export function Sidebar({
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-sidebar-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] lg:flex">
+      <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-sidebar-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/92 backdrop-blur-md lg:flex">
         <div className="flex h-[var(--v2-topbar-h)] items-center px-4">
           <Link
             href={signedIn ? "/dashboard" : "/"}
             className="flex items-center gap-2.5 no-underline"
           >
-            <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-white">
+            <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-[var(--v2-on-primary)]">
               DT
             </span>
             <span className="text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--v2-fg)]">
@@ -177,7 +177,7 @@ export function Sidebar({
           {!signedIn ? (
             <Link
               href="/sign-in"
-              className="mt-1 flex items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 py-2 text-[var(--v2-text-sm)] font-semibold text-white no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
+              className="mt-1 flex items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 py-2 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
             >
               Sign in
             </Link>

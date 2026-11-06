@@ -418,7 +418,7 @@ function DetailedMonthCalendar({
                       className={cn(
                         "inline-flex size-6 items-center justify-center rounded-full text-[12px] font-medium tabular-nums",
                         isToday
-                          ? "bg-[var(--v2-primary)] text-white"
+                          ? "bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
                           : "text-[var(--v2-fg-muted)]",
                       )}
                     >

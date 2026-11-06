@@ -10,12 +10,13 @@
   --land-fg: var(--v2-fg);
   --land-muted: var(--v2-fg-muted);
   --land-line: var(--v2-border);
-  --land-accent: #a3db00;
-  --land-accent-fg: #10180a;
+  /* CTA fill + label follow theme: white text in light, black in dark */
+  --land-accent: var(--v2-primary);
+  --land-accent-fg: var(--v2-on-primary);
   --land-band: #111814;
   --land-band-fg: #f3f6f1;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 62%, transparent);
-  --land-heat: var(--land-accent);
+  --land-heat: var(--v2-primary);
   --land-display: var(--font-landing-display), "Avenir Next", sans-serif;
   --land-body: var(--font-landing-body), var(--v2-font-sans);
   color: var(--land-fg);
@@ -25,7 +26,7 @@
 
 [data-theme="dark"] .landing {
   --land-accent: #c8f542;
-  --land-accent-fg: #0d1408;
+  --land-accent-fg: #0a0a0a; /* black on lime */
   --land-band: #0e1310;
   --land-band-fg: #eef2ec;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 60%, transparent);
@@ -33,16 +34,22 @@
 }
 
 [data-theme="light"] .landing {
-  --land-accent: #8fc400;
-  --land-accent-fg: #10180a;
-  --land-band: #121a16;
-  --land-band-fg: #f4f7f2;
+  --land-accent: #4338ca;
+  --land-accent-fg: #ffffff; /* white on indigo */
+  --land-band: #0f172a;
+  --land-band-fg: #f1f5f9;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 64%, transparent);
-  --land-heat: #9ed100;
+  --land-heat: #6366f1;
 }
 
-.landing a {
-  color: inherit;
+/* Do NOT set `a { color: inherit }` — it overrides CTA label colors. */
+.landing a.landing-cta {
+  background: var(--land-accent);
+  color: var(--land-accent-fg);
+}
+
+.landing a.landing-cta:hover {
+  filter: brightness(1.05);
 }
 
 .landing-display {

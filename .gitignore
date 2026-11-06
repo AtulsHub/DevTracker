@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Local documentation — keep on disk, never push
 .docs/*
+/docs/

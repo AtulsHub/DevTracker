@@ -25,7 +25,7 @@ function GuestTopBar({ signedIn }: { signedIn: boolean }) {
         href={signedIn ? "/dashboard" : "/"}
         className="flex items-center gap-2.5 no-underline"
       >
-        <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[10px] font-bold text-white">
+        <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[10px] font-bold text-[var(--v2-on-primary)]">
           DT
         </span>
         <span className="text-[var(--v2-text-sm)] font-semibold tracking-tight text-[var(--v2-fg)]">
@@ -64,7 +64,7 @@ function GuestTopBar({ signedIn }: { signedIn: boolean }) {
         {signedIn ? (
           <Link
             href="/dashboard"
-            className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-white no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
+            className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
           >
             Open app
           </Link>
@@ -78,7 +78,7 @@ function GuestTopBar({ signedIn }: { signedIn: boolean }) {
             </Link>
             <Link
               href="/sign-up"
-              className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-white no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
+              className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
             >
               Sign up
             </Link>

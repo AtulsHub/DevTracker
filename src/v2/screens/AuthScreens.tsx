@@ -155,7 +155,7 @@ function AuthShell({
     <div className="relative mx-auto flex min-h-[70dvh] w-full max-w-md flex-col justify-center px-4 py-8">
       <div className="relative mb-6">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-white">
+          <span className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-[var(--v2-on-primary)]">
             DT
           </span>
           <span className="text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--v2-fg)]">

@@ -6,11 +6,11 @@ type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-[var(--v2-primary)] text-white hover:bg-[var(--v2-primary-hover)]",
+    "bg-[var(--v2-primary)] text-[var(--v2-on-primary)] hover:bg-[var(--v2-primary-hover)] shadow-[var(--v2-shadow-sm)]",
   secondary:
-    "bg-[var(--v2-bg-elevated)] text-[var(--v2-fg)] border border-[var(--v2-border)] hover:bg-[var(--v2-surface-hover)]",
+    "bg-[var(--v2-bg-elevated)] text-[var(--v2-fg)] border border-[var(--v2-border-strong)] hover:bg-[var(--v2-surface-hover)] hover:border-[var(--v2-primary)]/40",
   ghost:
-    "bg-transparent text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]",
+    "bg-transparent text-[var(--v2-fg-muted)] hover:bg-[var(--v2-primary-muted)] hover:text-[var(--v2-primary)]",
   danger: "bg-[var(--v2-danger)] text-white hover:opacity-90",
 };
 
@@ -36,7 +36,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--v2-radius-md)] font-medium transition-colors duration-[var(--v2-duration)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-primary)] disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-[var(--v2-radius-md)] font-semibold tracking-tight transition-colors duration-[var(--v2-duration)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-primary)] disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,

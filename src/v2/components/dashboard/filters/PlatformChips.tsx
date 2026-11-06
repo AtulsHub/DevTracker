@@ -37,7 +37,7 @@ export function PlatformChips({
           className={cn(
             "min-h-8 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-colors duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
             allSelected
-              ? "border-transparent bg-[var(--v2-primary)] text-white"
+              ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
               : "border-[var(--v2-border)] bg-[var(--v2-bg)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
           )}
         >

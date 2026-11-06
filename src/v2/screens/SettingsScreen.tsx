@@ -197,7 +197,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                     className={cn(
                       "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[var(--v2-radius-md)]",
                       selected
-                        ? "bg-[var(--v2-primary)] text-white"
+                        ? "bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
                         : "bg-[var(--v2-bg-muted)] text-[var(--v2-fg-muted)]",
                     )}
                   >
@@ -335,7 +335,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                 </p>
               </div>
               <Button
-                size="sm"
+                size="lg"
                 variant="danger"
                 onClick={() => void signOut({ callbackUrl: "/" })}
               >
