@@ -71,13 +71,36 @@ export const v2Api = {
       body: JSON.stringify({ handle }),
     }),
   teams: () => api<{ teams: TeamDto[] }>("/api/teams"),
+  publicTeams: (q = "", limit = 24) =>
+    api<{ teams: TeamDto[] }>(
+      `/api/teams?public=true&limit=${limit}${q ? `&q=${encodeURIComponent(q)}` : ""}`,
+    ),
   createTeam: (body: Record<string, unknown>) =>
     api("/api/teams", { method: "POST", body: JSON.stringify(body) }),
-  team: (slug: string) => api<{ team: TeamDto & Record<string, unknown> }>(`/api/teams/${slug}`),
+  team: (slug: string) =>
+    api<{ team: TeamDto & Record<string, unknown> }>(`/api/teams/${slug}`),
+  updateTeam: (slug: string, body: Record<string, unknown>) =>
+    api(`/api/teams/${slug}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteTeam: (slug: string) =>
+    api(`/api/teams/${slug}`, { method: "DELETE" }),
   teamMembers: (slug: string) =>
     api<{ members: TeamMemberDto[] }>(`/api/teams/${slug}/members`),
   teamPending: (slug: string) =>
-    api<{ requests: TeamMemberDto[] }>(`/api/teams/${slug}/members?pending=true`),
+    api<{ requests: TeamMemberDto[] }>(
+      `/api/teams/${slug}/members?pending=true`,
+    ),
+  updateMemberRole: (
+    slug: string,
+    userId: string,
+    role: "ADMIN" | "MODERATOR" | "MEMBER",
+  ) =>
+    api(`/api/teams/${slug}/members/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   approveRequest: (slug: string, userId: string) =>
     api(`/api/teams/${slug}/requests/${userId}`, { method: "POST" }),
   rejectRequest: (slug: string, userId: string) =>
@@ -99,6 +122,38 @@ export const v2Api = {
     }),
   removeMember: (slug: string, userId: string) =>
     api(`/api/teams/${slug}/members/${userId}`, { method: "DELETE" }),
+  regenerateInvite: (slug: string) =>
+    api<{ inviteCode: string }>(`/api/teams/${slug}/regenerate-invite`, {
+      method: "POST",
+    }),
+  transferOwnership: (slug: string, userId: string) =>
+    api(`/api/teams/${slug}/transfer`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    }),
+  teamAnnouncements: (slug: string) =>
+    api<{ announcements: AnnouncementDto[] }>(
+      `/api/teams/${slug}/announcements`,
+    ),
+  createAnnouncement: (
+    slug: string,
+    body: {
+      title: string;
+      body: string;
+      imageUrl?: string | null;
+      linkUrl?: string | null;
+    },
+  ) =>
+    api(`/api/teams/${slug}/announcements`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  deleteAnnouncement: (slug: string, id: string) =>
+    api(`/api/teams/${slug}/announcements/${id}`, { method: "DELETE" }),
+  teamActivity: (slug: string, days = 14) =>
+    api<{ activity: TeamActivityDto[]; days: number; limit: number }>(
+      `/api/teams/${slug}/activity?days=${days}&limit=100`,
+    ),
   teamLeaderboard: (slug: string, range = "weekly") =>
     api<{ leaderboard: LeaderboardDto[]; range: string }>(
       `/api/teams/${slug}/leaderboard?range=${range}`,
@@ -110,6 +165,98 @@ export const v2Api = {
   register: (body: { username: string; email: string; password: string }) =>
     api("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
 };
+
+export interface AnnouncementDto {
+  id: string;
+  teamId: string;
+  title: string;
+  body: string;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  createdAt: string | Date;
+  author: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl?: string | null;
+  };
+}
+
+type TeamActivityActor = {
+  userId: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl?: string | null;
+};
+
+export type TeamActivityDto =
+  | (TeamActivityActor & {
+      type: "problem";
+      at: string;
+      date: string;
+      problemId: string;
+      problemTitle: string;
+      problemUrl: string | null;
+      platform: string;
+      difficulty: string | null;
+      rating: number | null;
+      tags: string[] | null;
+      inContest: boolean;
+    })
+  | (TeamActivityActor & {
+      type: "day";
+      at: string;
+      date: string;
+      solvedCount: number;
+      submissionsCount: number;
+      contestsCount: number;
+      points: number;
+    })
+  | (TeamActivityActor & {
+      type: "contest";
+      at: string;
+      contestId: string;
+      contestName: string;
+      contestUrl: string | null;
+      platform: string;
+      rank: number | null;
+      ratingBefore: number | null;
+      ratingAfter: number | null;
+      ratingDelta: number | null;
+      solvedCount: number | null;
+    })
+  | (TeamActivityActor & {
+      type: "joined";
+      at: string;
+      role: string;
+    })
+  | {
+      type: "announcement";
+      at: string;
+      id: string;
+      title: string;
+      bodyPreview: string;
+      authorUserId: string;
+      authorUsername: string;
+      authorDisplayName: string | null;
+      authorAvatarUrl?: string | null;
+    }
+  | (TeamActivityActor & {
+      type: "target_created";
+      at: string;
+      targetId: string;
+      title: string;
+      targetType: string;
+      endsAt: string | null;
+    })
+  | (TeamActivityActor & {
+      type: "target_completed";
+      at: string;
+      targetId: string;
+      title: string;
+      goalValue: number;
+      currentValue: number;
+    });
 
 export interface TeamMemberDto {
   userId: string;
@@ -132,29 +279,6 @@ export interface LeaderboardDto {
   rank: number;
 }
 
-export interface TargetDto {
-  id: string;
-  title: string;
-  type: string;
-  startsAt?: string | Date | null;
-  endsAt?: string | Date | null;
-  progress: {
-    currentValue: number;
-    goalValue: number;
-    isCompleted: boolean;
-  } | null;
-  memberProgress?: Array<{
-    userId: string;
-    username: string | null;
-    displayName: string | null;
-    currentValue: number;
-    goalValue: number;
-    isCompleted: boolean;
-  }>;
-  completedCount?: number;
-  assigneeCount?: number;
-}
-
 export interface ContestDto {
   id: string;
   platform: string;
@@ -173,4 +297,30 @@ export interface TeamDto {
   description?: string | null;
   visibility?: string;
   memberCount?: number;
+  avatarUrl?: string | null;
+}
+
+export interface TargetDto {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  criteria?: Record<string, unknown> | null;
+  startsAt?: string | Date | null;
+  endsAt?: string | Date | null;
+  progress: {
+    currentValue: number;
+    goalValue: number;
+    isCompleted: boolean;
+  } | null;
+  memberProgress?: Array<{
+    userId: string;
+    username: string | null;
+    displayName: string | null;
+    currentValue: number;
+    goalValue: number;
+    isCompleted: boolean;
+  }>;
+  completedCount?: number;
+  assigneeCount?: number;
 }

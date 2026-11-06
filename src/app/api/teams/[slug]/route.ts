@@ -8,15 +8,16 @@ import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { teams, teamMembers } from "@/server/db/schema";
-import { eq, and } from "drizzle-orm";
-import { getTeamBySlug, updateMemberRole, removeMember } from "@/server/services/teams";
+import { teams } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
+import { getTeamBySlug } from "@/server/services/teams";
 
 const updateTeamSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
   visibility: z.enum(["PUBLIC", "PRIVATE", "SECRET"]).optional(),
   memberVisibilityPolicy: z.enum(["EVERYONE", "FOLLOWERS", "TEAM", "ME"]).optional(),
+  avatarUrl: z.string().max(400_000).optional().nullable(),
 });
 
 export async function GET(
@@ -33,24 +34,18 @@ export async function GET(
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    // Check visibility for private/secret teams
-    if (team.visibility !== "PUBLIC") {
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: "Team is private" }, { status: 403 });
-      }
-
-      const membership = await db.query.teamMembers.findFirst({
-        where: and(eq(teamMembers.teamId, team.id), eq(teamMembers.userId, session.user.id)),
-      });
-
-      if (!membership || membership.status !== "ACTIVE") {
-        return NextResponse.json({ error: "Team is private" }, { status: 403 });
+    // SECRET: only people with membership (active or pending via invite) can see it.
+    // PRIVATE/PUBLIC: metadata is visible so people can request / join.
+    if (team.visibility === "SECRET") {
+      if (!session?.user?.id || !team.userStatus) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
       }
     }
 
     // Invite codes are for owners/admins only
     const canSeeInvite =
-      team.userRole === "OWNER" || team.userRole === "ADMIN";
+      team.userStatus === "ACTIVE" &&
+      (team.userRole === "OWNER" || team.userRole === "ADMIN");
     const payload = canSeeInvite
       ? team
       : { ...team, inviteCode: null };

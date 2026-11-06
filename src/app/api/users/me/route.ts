@@ -14,17 +14,69 @@ const optionalUrl = z
   .optional()
   .transform((v) => (v === "" || v === undefined ? null : v));
 
+const educationSchema = z.array(
+  z.object({
+    id: z.string().min(1).max(64),
+    school: z.string().min(1).max(160),
+    degree: z.string().max(120).optional(),
+    field: z.string().max(120).optional(),
+    startYear: z.string().max(20).optional(),
+    endYear: z.string().max(20).optional(),
+    description: z.string().max(500).optional(),
+  }),
+);
+
+const experienceSchema = z.array(
+  z.object({
+    id: z.string().min(1).max(64),
+    company: z.string().min(1).max(160),
+    title: z.string().min(1).max(160),
+    startDate: z.string().max(40).optional(),
+    endDate: z.string().max(40).optional(),
+    current: z.boolean().optional(),
+    description: z.string().max(800).optional(),
+  }),
+);
+
+const projectSchema = z.array(
+  z.object({
+    id: z.string().min(1).max(64),
+    name: z.string().min(1).max(160),
+    url: z.string().max(500).optional(),
+    description: z.string().max(800).optional(),
+    tech: z.string().max(240).optional(),
+  }),
+);
+
+const certificationSchema = z.array(
+  z.object({
+    id: z.string().min(1).max(64),
+    name: z.string().min(1).max(160),
+    issuer: z.string().max(160).optional(),
+    year: z.string().max(20).optional(),
+    url: z.string().max(500).optional(),
+  }),
+);
+
 const updateProfileSchema = z
   .object({
     displayName: z.union([z.string().min(1).max(80), z.null()]).optional(),
-    bio: z.union([z.string().max(500), z.null()]).optional(),
+    bio: z.union([z.string().max(1200), z.null()]).optional(),
     headline: z.union([z.string().max(160), z.null()]).optional(),
     location: z.union([z.string().max(120), z.null()]).optional(),
     age: z.union([z.number().int().min(13).max(120), z.null()]).optional(),
     websiteUrl: optionalUrl,
     githubUrl: optionalUrl,
+    linkedinUrl: optionalUrl,
+    twitterUrl: optionalUrl,
+    resumeUrl: optionalUrl,
     college: z.union([z.string().max(120), z.null()]).optional(),
     skills: z.union([z.string().max(400), z.null()]).optional(),
+    openToWork: z.boolean().optional(),
+    education: educationSchema.max(20).optional(),
+    experience: experienceSchema.max(30).optional(),
+    projects: projectSchema.max(30).optional(),
+    certifications: certificationSchema.max(30).optional(),
     avatarUrl: z.union([z.string().max(400_000), z.null()]).optional(),
     timezone: z.string().min(1).max(60).optional(),
     profileVisibility: z
@@ -47,8 +99,16 @@ export const PROFILE_COLUMNS = {
   age: users.age,
   websiteUrl: users.websiteUrl,
   githubUrl: users.githubUrl,
+  linkedinUrl: users.linkedinUrl,
+  twitterUrl: users.twitterUrl,
+  resumeUrl: users.resumeUrl,
   college: users.college,
   skills: users.skills,
+  openToWork: users.openToWork,
+  education: users.education,
+  experience: users.experience,
+  projects: users.projects,
+  certifications: users.certifications,
   timezone: users.timezone,
   profileVisibility: users.profileVisibility,
   discoverable: users.discoverable,

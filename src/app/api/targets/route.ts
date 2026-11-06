@@ -17,6 +17,7 @@ import { and, eq } from "drizzle-orm";
 
 const createTargetSchema = z.object({
   title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional().nullable(),
   type: z.enum([
     "SOLVE_COUNT",
     "SPECIFIC_PROBLEMS",
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
     const target = await createTarget({
       userId: session.user.id,
       title: parsed.data.title,
+      description: parsed.data.description ?? null,
       type: parsed.data.type,
       goalValue: parsed.data.goalValue,
       startsAt: new Date(parsed.data.startsAt),

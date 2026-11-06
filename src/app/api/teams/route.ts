@@ -11,9 +11,10 @@ import { createTeam, getUserTeams, getPublicTeams } from "@/server/services/team
 const createTeamSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z.string().min(3).max(60).regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
-  description: z.string().max(500).optional(),
+  description: z.string().max(2000).optional(),
   visibility: z.enum(["PUBLIC", "PRIVATE", "SECRET"]).default("PUBLIC"),
   memberVisibilityPolicy: z.enum(["EVERYONE", "FOLLOWERS", "TEAM", "ME"]).default("TEAM"),
+  avatarUrl: z.string().max(400_000).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -57,7 +58,8 @@ export async function GET(req: Request) {
     const offset = parseInt(searchParams.get("offset") ?? "0");
 
     if (publicOnly) {
-      const teams = await getPublicTeams(limit, offset);
+      const q = searchParams.get("q") ?? undefined;
+      const teams = await getPublicTeams(limit, offset, q);
       return NextResponse.json({ teams });
     }
 

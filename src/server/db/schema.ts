@@ -155,9 +155,66 @@ export const users = pgTable("users", {
   age: integer("age"),
   websiteUrl: text("website_url"),
   githubUrl: text("github_url"),
+  linkedinUrl: text("linkedin_url"),
+  twitterUrl: text("twitter_url"),
+  /** Public resume / CV link (Drive, personal site, etc.) */
+  resumeUrl: text("resume_url"),
   college: varchar("college", { length: 120 }),
   /** Comma-separated skills / topics (e.g. "DP, Graphs, System Design") */
   skills: text("skills"),
+  openToWork: boolean("open_to_work").notNull().default(false),
+  education: jsonb("education")
+    .$type<
+      Array<{
+        id: string;
+        school: string;
+        degree?: string;
+        field?: string;
+        startYear?: string;
+        endYear?: string;
+        description?: string;
+      }>
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  experience: jsonb("experience")
+    .$type<
+      Array<{
+        id: string;
+        company: string;
+        title: string;
+        startDate?: string;
+        endDate?: string;
+        current?: boolean;
+        description?: string;
+      }>
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  projects: jsonb("projects")
+    .$type<
+      Array<{
+        id: string;
+        name: string;
+        url?: string;
+        description?: string;
+        tech?: string;
+      }>
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  certifications: jsonb("certifications")
+    .$type<
+      Array<{
+        id: string;
+        name: string;
+        issuer?: string;
+        year?: string;
+        url?: string;
+      }>
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   timezone: varchar("timezone", { length: 60 }).notNull().default("UTC"),
   profileVisibility: profileVisibilityEnum("profile_visibility")
     .notNull()
@@ -489,6 +546,10 @@ export const teamAnnouncements = pgTable("team_announcements", {
     .references(() => users.id),
   title: varchar("title", { length: 200 }).notNull(),
   body: text("body").notNull(),
+  /** Optional image (data URL or remote URL) attached to the post */
+  imageUrl: text("image_url"),
+  /** Optional external / contest / problem link */
+  linkUrl: text("link_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -750,3 +811,17 @@ export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   team: one(teams, { fields: [teamMembers.teamId], references: [teams.id] }),
   user: one(users, { fields: [teamMembers.userId], references: [users.id] }),
 }));
+
+export const teamAnnouncementsRelations = relations(
+  teamAnnouncements,
+  ({ one }) => ({
+    team: one(teams, {
+      fields: [teamAnnouncements.teamId],
+      references: [teams.id],
+    }),
+    author: one(users, {
+      fields: [teamAnnouncements.authorId],
+      references: [users.id],
+    }),
+  }),
+);

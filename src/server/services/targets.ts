@@ -10,8 +10,12 @@ import {
   problems,
   platformEnum,
   users,
+  dailyActivity,
+  platformAccounts,
+  contestResults,
 } from "@/server/db/schema";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql, inArray, or } from "drizzle-orm";
+import { formatISO, eachDayOfInterval, subDays } from "date-fns";
 
 type Platform = (typeof platformEnum.enumValues)[number];
 
@@ -206,6 +210,12 @@ async function countSolvesForUser(
     typeof criteria.minRating === "number" ? criteria.minRating : null;
   const maxRating =
     typeof criteria.maxRating === "number" ? criteria.maxRating : null;
+  const urls = Array.isArray(criteria.problemUrls)
+    ? criteria.problemUrls.filter((u): u is string => typeof u === "string")
+    : [];
+  const externalIds = Array.isArray(criteria.externalIds)
+    ? criteria.externalIds.filter((u): u is string => typeof u === "string")
+    : [];
 
   const conditions = [eq(solves.userId, userId)];
   if (target.startsAt) {
@@ -215,18 +225,27 @@ async function countSolvesForUser(
     conditions.push(lte(solves.firstSolvedAt, target.endsAt));
   }
 
-  if (platform || minRating != null || maxRating != null) {
-    const problemConditions = [];
-    if (platform && (platformEnum.enumValues as string[]).includes(platform)) {
-      problemConditions.push(eq(problems.platform, platform as Platform));
+  const problemConditions = [];
+  if (platform && (platformEnum.enumValues as string[]).includes(platform)) {
+    problemConditions.push(eq(problems.platform, platform as Platform));
+  }
+  if (minRating != null) {
+    problemConditions.push(gte(problems.rating, minRating));
+  }
+  if (maxRating != null) {
+    problemConditions.push(lte(problems.rating, maxRating));
+  }
+  if (urls.length > 0 || externalIds.length > 0) {
+    const parts = [];
+    if (urls.length > 0) parts.push(inArray(problems.url, urls));
+    if (externalIds.length > 0) {
+      parts.push(inArray(problems.externalId, externalIds));
     }
-    if (minRating != null) {
-      problemConditions.push(gte(problems.rating, minRating));
-    }
-    if (maxRating != null) {
-      problemConditions.push(lte(problems.rating, maxRating));
-    }
+    const match = parts.length === 1 ? parts[0]! : or(...parts);
+    if (match) problemConditions.push(match);
+  }
 
+  if (problemConditions.length > 0) {
     const rows = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(solves)
@@ -244,6 +263,112 @@ async function countSolvesForUser(
   return Number(rows[0]?.count ?? 0);
 }
 
+async function currentStreakDays(
+  userId: string,
+  target: typeof targets.$inferSelect,
+): Promise<number> {
+  const end = target.endsAt && target.endsAt < new Date() ? target.endsAt : new Date();
+  const start = target.startsAt ?? subDays(end, 120);
+  const startDate = formatISO(start, { representation: "date" });
+  const endDate = formatISO(end, { representation: "date" });
+
+  const rows = await db
+    .select({
+      date: dailyActivity.date,
+      solvedCount: dailyActivity.solvedCount,
+    })
+    .from(dailyActivity)
+    .where(
+      and(
+        eq(dailyActivity.userId, userId),
+        gte(dailyActivity.date, startDate),
+        lte(dailyActivity.date, endDate),
+        sql`${dailyActivity.solvedCount} > 0`,
+      ),
+    );
+
+  const active = new Set(rows.map((r) => r.date));
+  let streak = 0;
+  const days = eachDayOfInterval({ start, end }).reverse();
+  for (const day of days) {
+    const key = formatISO(day, { representation: "date" });
+    if (active.has(key)) streak += 1;
+    else if (streak > 0) break;
+  }
+  return streak;
+}
+
+async function contestCountForUser(
+  userId: string,
+  target: typeof targets.$inferSelect,
+): Promise<number> {
+  const criteria = (target.criteria as Record<string, unknown>) || {};
+  const platform =
+    typeof criteria.platform === "string" ? criteria.platform : null;
+
+  const accountWhere =
+    platform && (platformEnum.enumValues as string[]).includes(platform)
+      ? and(
+          eq(platformAccounts.userId, userId),
+          eq(platformAccounts.platform, platform as Platform),
+        )
+      : eq(platformAccounts.userId, userId);
+
+  const accounts = await db.query.platformAccounts.findMany({
+    where: accountWhere,
+    columns: { id: true },
+  });
+  if (accounts.length === 0) return 0;
+
+  const conditions = [
+    inArray(
+      contestResults.platformAccountId,
+      accounts.map((a) => a.id),
+    ),
+  ];
+  if (target.startsAt) {
+    conditions.push(gte(contestResults.participatedAt, target.startsAt));
+  }
+  if (target.endsAt) {
+    conditions.push(lte(contestResults.participatedAt, target.endsAt));
+  }
+
+  const rows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(contestResults)
+    .where(and(...conditions));
+
+  return Number(rows[0]?.count ?? 0);
+}
+
+async function ratingForUser(
+  userId: string,
+  target: typeof targets.$inferSelect,
+): Promise<number> {
+  const criteria = (target.criteria as Record<string, unknown>) || {};
+  const platform =
+    typeof criteria.platform === "string" ? criteria.platform : null;
+
+  const accountWhere =
+    platform && (platformEnum.enumValues as string[]).includes(platform)
+      ? and(
+          eq(platformAccounts.userId, userId),
+          eq(platformAccounts.platform, platform as Platform),
+        )
+      : eq(platformAccounts.userId, userId);
+
+  const accounts = await db.query.platformAccounts.findMany({
+    where: accountWhere,
+    columns: { currentRating: true, maxRating: true },
+  });
+
+  let best = 0;
+  for (const a of accounts) {
+    best = Math.max(best, a.currentRating ?? 0, a.maxRating ?? 0);
+  }
+  return best;
+}
+
 /**
  * Recalculate progress for every assignee of a target.
  */
@@ -258,12 +383,28 @@ export async function recalculateTarget(targetId: string) {
   });
 
   for (const row of progressRows) {
-    let currentValue = 0;
+    let currentValue = row.currentValue;
 
-    if (target.type === "SOLVE_COUNT") {
-      currentValue = await countSolvesForUser(row.userId, target);
+    switch (target.type) {
+      case "SOLVE_COUNT":
+      case "SPECIFIC_PROBLEMS":
+        currentValue = await countSolvesForUser(row.userId, target);
+        break;
+      case "STREAK":
+        currentValue = await currentStreakDays(row.userId, target);
+        break;
+      case "CONTEST_PARTICIPATION":
+        currentValue = await contestCountForUser(row.userId, target);
+        break;
+      case "RATING_GOAL":
+        currentValue = await ratingForUser(row.userId, target);
+        break;
+      case "CUSTOM_CHECKLIST":
+        // Manual / self-reported — keep existing currentValue.
+        break;
+      default:
+        break;
     }
-    // Other target types can be added in follow-up tasks.
 
     const goalValue = row.goalValue;
     const isCompleted = currentValue >= goalValue;

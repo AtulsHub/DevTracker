@@ -140,6 +140,14 @@ export async function loadPublicProfile(
       skills: true,
       websiteUrl: true,
       githubUrl: true,
+      linkedinUrl: true,
+      twitterUrl: true,
+      resumeUrl: true,
+      openToWork: true,
+      education: true,
+      experience: true,
+      projects: true,
+      certifications: true,
       profileVisibility: true,
     },
   });
@@ -176,6 +184,14 @@ export async function loadPublicProfile(
     skills: owner.skills,
     websiteUrl: owner.websiteUrl,
     githubUrl: owner.githubUrl,
+    linkedinUrl: owner.linkedinUrl,
+    twitterUrl: owner.twitterUrl,
+    resumeUrl: owner.resumeUrl,
+    openToWork: owner.openToWork,
+    education: owner.education ?? [],
+    experience: owner.experience ?? [],
+    projects: owner.projects ?? [],
+    certifications: owner.certifications ?? [],
     platforms,
     recent,
     totalSolved,
@@ -186,6 +202,15 @@ export async function loadUserTeams(userId: string) {
   const { getUserTeams } = await import("@/server/services/teams");
   try {
     return await getUserTeams(userId);
+  } catch {
+    return [];
+  }
+}
+
+export async function loadPublicTeams(limit = 24, query?: string) {
+  const { getPublicTeams } = await import("@/server/services/teams");
+  try {
+    return await getPublicTeams(limit, 0, query);
   } catch {
     return [];
   }

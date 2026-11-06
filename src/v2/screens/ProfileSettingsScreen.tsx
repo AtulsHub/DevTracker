@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +16,13 @@ import { Input } from "@/v2/components/Input";
 import { PageHeader } from "@/v2/components/PageHeader";
 import { v2Api } from "@/v2/lib/api";
 import { fileToAvatarDataUrl } from "@/v2/lib/avatar";
+import {
+  newEntryId,
+  type CertificationEntry,
+  type EducationEntry,
+  type ExperienceEntry,
+  type ProjectEntry,
+} from "@/v2/lib/profileTypes";
 import { useTheme } from "@/v2/shell/ThemeProvider";
 import { cn } from "@/v2/lib/cn";
 
@@ -23,17 +36,47 @@ export type ProfileUser = {
   age: number | null;
   websiteUrl: string | null;
   githubUrl: string | null;
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
+  resumeUrl: string | null;
   college: string | null;
   skills: string | null;
+  openToWork: boolean;
+  education: EducationEntry[];
+  experience: ExperienceEntry[];
+  projects: ProjectEntry[];
+  certifications: CertificationEntry[];
   profileVisibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
   timezone: string | null;
+  discoverable: boolean;
 };
+
+type SectionId =
+  | "basics"
+  | "links"
+  | "experience"
+  | "education"
+  | "projects"
+  | "certs"
+  | "prefs";
+
+const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "basics", label: "Basics" },
+  { id: "links", label: "Links & resume" },
+  { id: "experience", label: "Experience" },
+  { id: "education", label: "Education" },
+  { id: "projects", label: "Projects" },
+  { id: "certs", label: "Certifications" },
+  { id: "prefs", label: "Preferences" },
+];
 
 export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const { theme, setTheme } = useTheme();
   const [pending, startTransition] = useTransition();
+  const [section, setSection] = useState<SectionId>("basics");
+
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
   const [headline, setHeadline] = useState(user.headline ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
@@ -43,11 +86,35 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   const [skills, setSkills] = useState(user.skills ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(user.websiteUrl ?? "");
   const [githubUrl, setGithubUrl] = useState(user.githubUrl ?? "");
+  const [linkedinUrl, setLinkedinUrl] = useState(user.linkedinUrl ?? "");
+  const [twitterUrl, setTwitterUrl] = useState(user.twitterUrl ?? "");
+  const [resumeUrl, setResumeUrl] = useState(user.resumeUrl ?? "");
+  const [openToWork, setOpenToWork] = useState(user.openToWork);
+  const [education, setEducation] = useState<EducationEntry[]>(
+    user.education ?? [],
+  );
+  const [experience, setExperience] = useState<ExperienceEntry[]>(
+    user.experience ?? [],
+  );
+  const [projects, setProjects] = useState<ProjectEntry[]>(user.projects ?? []);
+  const [certifications, setCertifications] = useState<CertificationEntry[]>(
+    user.certifications ?? [],
+  );
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [visibility, setVisibility] = useState(user.profileVisibility);
+  const [discoverable, setDiscoverable] = useState(user.discoverable);
+  const [timezone, setTimezone] = useState(user.timezone ?? "UTC");
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const timezones = useMemo(() => {
+    try {
+      return Intl.supportedValuesOf("timeZone");
+    } catch {
+      return ["UTC", "Asia/Kolkata", "America/New_York", "Europe/London"];
+    }
+  }, []);
 
   async function onPickAvatar(file: File | null) {
     if (!file) return;
@@ -83,8 +150,18 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
         skills: skills.trim() || null,
         websiteUrl: websiteUrl.trim() || null,
         githubUrl: githubUrl.trim() || null,
+        linkedinUrl: linkedinUrl.trim() || null,
+        twitterUrl: twitterUrl.trim() || null,
+        resumeUrl: resumeUrl.trim() || null,
+        openToWork,
+        education,
+        experience,
+        projects,
+        certifications,
         avatarUrl: avatarUrl || null,
         profileVisibility: visibility,
+        discoverable,
+        timezone: timezone || "UTC",
       });
       setMsg("Profile saved");
       startTransition(() => router.refresh());
@@ -94,214 +171,755 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7">
+    <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
-        title="Settings"
-        description={`@${user.username} · manage your public profile and preferences`}
+        title="Edit profile"
+        description={`@${user.username} · build a clear public portfolio for coding and career`}
         actions={
-          <Link href={`/u/${user.username}`}>
-            <Button size="sm" variant="secondary">
-              View public page
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/u/${user.username}`}>
+              <Button size="sm" variant="secondary">
+                View public page
+              </Button>
+            </Link>
+            <Button size="sm" loading={pending} onClick={() => void save()}>
+              Save all
             </Button>
-          </Link>
+          </div>
         }
       />
 
-      <Card className="mb-4">
-        <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-            Photo
-          </h2>
-        </CardHeader>
-        <CardBody className="flex flex-wrap items-center gap-4 pt-0">
-          <div className="relative size-20 overflow-hidden rounded-full bg-[var(--v2-primary-muted)]">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="size-full object-cover" />
-            ) : (
-              <span className="flex size-full items-center justify-center text-xl font-semibold text-[var(--v2-primary)]">
-                {(displayName || user.username).charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              onChange={(e) => void onPickAvatar(e.target.files?.[0] ?? null)}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              loading={uploading}
-              onClick={() => fileRef.current?.click()}
-            >
-              Upload photo
-            </Button>
-            {avatarUrl ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setAvatarUrl("")}
-              >
-                Remove photo
-              </Button>
-            ) : null}
-            <p className="text-[11px] text-[var(--v2-fg-subtle)]">
-              JPEG/PNG/WebP · compressed automatically
-            </p>
-          </div>
-        </CardBody>
-      </Card>
+      {(error || msg) && (
+        <p
+          className={cn(
+            "mb-4 rounded-[var(--v2-radius-md)] border px-3 py-2 text-[var(--v2-text-xs)]",
+            error
+              ? "border-[var(--v2-danger)]/30 bg-[var(--v2-danger)]/5 text-[var(--v2-danger)]"
+              : "border-[var(--v2-success)]/30 bg-[var(--v2-success)]/5 text-[var(--v2-success)]",
+          )}
+          role="status"
+        >
+          {error ?? msg}
+        </p>
+      )}
 
-      <Card className="mb-4">
-        <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-            Public details
-          </h2>
-        </CardHeader>
-        <CardBody className="flex flex-col gap-3 pt-0">
-          <Input
-            label="Display name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-          <Input
-            label="Headline"
-            placeholder="Competitive programmer · CF specialist"
-            value={headline}
-            onChange={(e) => setHeadline(e.target.value)}
-          />
-          <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-            Bio
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              maxLength={500}
-              className="min-h-24 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-fg)] outline-none transition-colors focus:border-[var(--v2-primary)] focus:ring-2 focus:ring-[var(--v2-primary-muted)]"
-            />
-          </label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Input
-              label="Location"
-              placeholder="Bengaluru, India"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-            <Input
-              label="Age"
-              type="number"
-              min={13}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-            />
-          </div>
-          <Input
-            label="College / org"
-            value={college}
-            onChange={(e) => setCollege(e.target.value)}
-          />
-          <Input
-            label="Skills (comma-separated)"
-            placeholder="DP, Graphs, AtCoder, System Design"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-          />
-          <Input
-            label="Website"
-            type="url"
-            placeholder="https://"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-          />
-          <Input
-            label="GitHub"
-            type="url"
-            placeholder="https://github.com/you"
-            value={githubUrl}
-            onChange={(e) => setGithubUrl(e.target.value)}
-          />
-          <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-            Profile visibility
-            <select
-              value={visibility}
-              onChange={(e) =>
-                setVisibility(
-                  e.target.value as "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE",
-                )
-              }
-              className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
-            >
-              <option value="PUBLIC">Public</option>
-              <option value="FOLLOWERS_ONLY">Followers only</option>
-              <option value="PRIVATE">Private</option>
-            </select>
-          </label>
-          {error ? (
-            <p className="text-[var(--v2-text-xs)] text-[var(--v2-danger)]">
-              {error}
-            </p>
-          ) : null}
-          {msg ? (
-            <p className="text-[var(--v2-text-xs)] text-[var(--v2-success)]">
-              {msg}
-            </p>
-          ) : null}
-          <Button size="sm" loading={pending} onClick={() => void save()}>
-            Save changes
-          </Button>
-        </CardBody>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-            Theme
-          </h2>
-        </CardHeader>
-        <CardBody className="flex gap-2 pt-0">
-          {(["light", "dark", "system"] as const).map((t) => (
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[200px_1fr]">
+        <nav className="flex gap-1 overflow-x-auto lg:sticky lg:top-20 lg:flex-col lg:self-start">
+          {SECTIONS.map((s) => (
             <button
-              key={t}
+              key={s.id}
               type="button"
-              onClick={() => setTheme(t)}
+              onClick={() => setSection(s.id)}
               className={cn(
-                "min-h-9 flex-1 rounded-[var(--v2-radius-md)] border text-[var(--v2-text-sm)] font-medium capitalize transition-colors duration-[var(--v2-duration)]",
-                theme === t
-                  ? "border-[var(--v2-primary)] bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                  : "border-[var(--v2-border)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
+                "min-h-9 shrink-0 rounded-[var(--v2-radius-md)] px-3 text-left text-[var(--v2-text-sm)] font-medium transition-colors",
+                section === s.id
+                  ? "bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
+                  : "text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]",
               )}
             >
-              {t}
+              {s.label}
             </button>
           ))}
-        </CardBody>
-      </Card>
+        </nav>
 
-      <Card>
-        <CardBody className="flex flex-col gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => router.push("/dashboard")}
-          >
-            Open dashboard
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => void signOut({ callbackUrl: "/" })}
-          >
-            Log out
-          </Button>
-        </CardBody>
-      </Card>
+        <div className="min-w-0 space-y-4">
+          {section === "basics" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                    Photo
+                  </h2>
+                </CardHeader>
+                <CardBody className="flex flex-wrap items-center gap-4 pt-0">
+                  <div className="relative size-20 overflow-hidden rounded-full bg-[var(--v2-primary-muted)]">
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-full items-center justify-center text-xl font-semibold text-[var(--v2-primary)]">
+                        {(displayName || user.username).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(e) =>
+                        void onPickAvatar(e.target.files?.[0] ?? null)
+                      }
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      loading={uploading}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      Upload photo
+                    </Button>
+                    {avatarUrl ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setAvatarUrl("")}
+                      >
+                        Remove photo
+                      </Button>
+                    ) : null}
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                    Identity
+                  </h2>
+                </CardHeader>
+                <CardBody className="flex flex-col gap-3 pt-0">
+                  <Input
+                    label="Display name"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                  />
+                  <Input
+                    label="Headline"
+                    placeholder="SDE · Competitive programmer · Open to internships"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                  />
+                  <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+                    About
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      rows={5}
+                      maxLength={1200}
+                      className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                    />
+                  </label>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Input
+                      label="Location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                    <Input
+                      label="Age"
+                      type="number"
+                      min={13}
+                      max={120}
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                    />
+                  </div>
+                  <Input
+                    label="College / organization"
+                    value={college}
+                    onChange={(e) => setCollege(e.target.value)}
+                  />
+                  <Input
+                    label="Skills (comma-separated)"
+                    placeholder="DP, Graphs, React, System Design"
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                  />
+                  <label className="flex items-center gap-2 text-[var(--v2-text-sm)] text-[var(--v2-fg)]">
+                    <input
+                      type="checkbox"
+                      checked={openToWork}
+                      onChange={(e) => setOpenToWork(e.target.checked)}
+                      className="size-4 accent-[var(--v2-primary)]"
+                    />
+                    Open to work / opportunities
+                  </label>
+                </CardBody>
+              </Card>
+            </>
+          ) : null}
+
+          {section === "links" ? (
+            <Card>
+              <CardHeader>
+                <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                  Links & resume
+                </h2>
+              </CardHeader>
+              <CardBody className="flex flex-col gap-3 pt-0">
+                <Input
+                  label="Resume / CV URL"
+                  type="url"
+                  placeholder="https://drive.google.com/… or personal site"
+                  value={resumeUrl}
+                  onChange={(e) => setResumeUrl(e.target.value)}
+                />
+                <Input
+                  label="Website / portfolio"
+                  type="url"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                />
+                <Input
+                  label="GitHub"
+                  type="url"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                />
+                <Input
+                  label="LinkedIn"
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                />
+                <Input
+                  label="X / Twitter"
+                  type="url"
+                  value={twitterUrl}
+                  onChange={(e) => setTwitterUrl(e.target.value)}
+                />
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {section === "experience" ? (
+            <ListEditor
+              title="Experience"
+              empty="Add roles, internships, or research positions."
+              count={experience.length}
+              onAdd={() =>
+                setExperience((prev) => [
+                  {
+                    id: newEntryId(),
+                    company: "",
+                    title: "",
+                    current: false,
+                  },
+                  ...prev,
+                ])
+              }
+            >
+              {experience.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="space-y-2 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
+                >
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Input
+                      label="Title"
+                      value={item.title}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, title: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      label="Company"
+                      value={item.company}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, company: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      label="Start"
+                      placeholder="2024-06"
+                      value={item.startDate ?? ""}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, startDate: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      label="End"
+                      placeholder="Present"
+                      value={item.endDate ?? ""}
+                      disabled={item.current}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, endDate: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-[var(--v2-text-sm)]">
+                    <input
+                      type="checkbox"
+                      checked={!!item.current}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((x, i) =>
+                            i === idx
+                              ? {
+                                  ...x,
+                                  current: e.target.checked,
+                                  endDate: e.target.checked
+                                    ? ""
+                                    : x.endDate,
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                    Current role
+                  </label>
+                  <textarea
+                    value={item.description ?? ""}
+                    onChange={(e) =>
+                      setExperience((prev) =>
+                        prev.map((x, i) =>
+                          i === idx
+                            ? { ...x, description: e.target.value }
+                            : x,
+                        ),
+                      )
+                    }
+                    rows={3}
+                    placeholder="Impact, stack, highlights"
+                    className="w-full rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setExperience((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </ListEditor>
+          ) : null}
+
+          {section === "education" ? (
+            <ListEditor
+              title="Education"
+              empty="Add degrees, bootcamps, or coursework."
+              count={education.length}
+              onAdd={() =>
+                setEducation((prev) => [
+                  { id: newEntryId(), school: "" },
+                  ...prev,
+                ])
+              }
+            >
+              {education.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="space-y-2 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
+                >
+                  <Input
+                    label="School"
+                    value={item.school}
+                    onChange={(e) =>
+                      setEducation((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, school: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Input
+                      label="Degree"
+                      value={item.degree ?? ""}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, degree: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      label="Field"
+                      value={item.field ?? ""}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, field: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      label="Start year"
+                      value={item.startYear ?? ""}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((x, i) =>
+                            i === idx
+                              ? { ...x, startYear: e.target.value }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      label="End year"
+                      value={item.endYear ?? ""}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, endYear: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <textarea
+                    value={item.description ?? ""}
+                    onChange={(e) =>
+                      setEducation((prev) =>
+                        prev.map((x, i) =>
+                          i === idx
+                            ? { ...x, description: e.target.value }
+                            : x,
+                        ),
+                      )
+                    }
+                    rows={2}
+                    placeholder="Notes, GPA, activities"
+                    className="w-full rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setEducation((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </ListEditor>
+          ) : null}
+
+          {section === "projects" ? (
+            <ListEditor
+              title="Projects"
+              empty="Showcase apps, research, or contest tools."
+              count={projects.length}
+              onAdd={() =>
+                setProjects((prev) => [
+                  { id: newEntryId(), name: "" },
+                  ...prev,
+                ])
+              }
+            >
+              {projects.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="space-y-2 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
+                >
+                  <Input
+                    label="Name"
+                    value={item.name}
+                    onChange={(e) =>
+                      setProjects((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, name: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    label="URL"
+                    value={item.url ?? ""}
+                    onChange={(e) =>
+                      setProjects((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, url: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    label="Tech"
+                    placeholder="Next.js, Postgres, Drizzle"
+                    value={item.tech ?? ""}
+                    onChange={(e) =>
+                      setProjects((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, tech: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <textarea
+                    value={item.description ?? ""}
+                    onChange={(e) =>
+                      setProjects((prev) =>
+                        prev.map((x, i) =>
+                          i === idx
+                            ? { ...x, description: e.target.value }
+                            : x,
+                        ),
+                      )
+                    }
+                    rows={3}
+                    placeholder="What it does and why it matters"
+                    className="w-full rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setProjects((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </ListEditor>
+          ) : null}
+
+          {section === "certs" ? (
+            <ListEditor
+              title="Certifications"
+              empty="Add courses, contest ranks, or professional certs."
+              count={certifications.length}
+              onAdd={() =>
+                setCertifications((prev) => [
+                  { id: newEntryId(), name: "" },
+                  ...prev,
+                ])
+              }
+            >
+              {certifications.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="space-y-2 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
+                >
+                  <Input
+                    label="Name"
+                    value={item.name}
+                    onChange={(e) =>
+                      setCertifications((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, name: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Input
+                      label="Issuer"
+                      value={item.issuer ?? ""}
+                      onChange={(e) =>
+                        setCertifications((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, issuer: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      label="Year"
+                      value={item.year ?? ""}
+                      onChange={(e) =>
+                        setCertifications((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, year: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <Input
+                    label="Credential URL"
+                    value={item.url ?? ""}
+                    onChange={(e) =>
+                      setCertifications((prev) =>
+                        prev.map((x, i) =>
+                          i === idx ? { ...x, url: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setCertifications((prev) =>
+                        prev.filter((_, i) => i !== idx),
+                      )
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </ListEditor>
+          ) : null}
+
+          {section === "prefs" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                    Visibility
+                  </h2>
+                </CardHeader>
+                <CardBody className="flex flex-col gap-3 pt-0">
+                  <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+                    Profile visibility
+                    <select
+                      value={visibility}
+                      onChange={(e) =>
+                        setVisibility(
+                          e.target.value as
+                            | "PUBLIC"
+                            | "FOLLOWERS_ONLY"
+                            | "PRIVATE",
+                        )
+                      }
+                      className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                    >
+                      <option value="PUBLIC">Public</option>
+                      <option value="FOLLOWERS_ONLY">Followers only</option>
+                      <option value="PRIVATE">Private</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 text-[var(--v2-text-sm)]">
+                    <input
+                      type="checkbox"
+                      checked={discoverable}
+                      onChange={(e) => setDiscoverable(e.target.checked)}
+                    />
+                    Show in Explore / discovery
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+                    Timezone
+                    <select
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
+                    >
+                      {timezones.map((tz) => (
+                        <option key={tz} value={tz}>
+                          {tz}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                    Theme
+                  </h2>
+                </CardHeader>
+                <CardBody className="flex gap-2 pt-0">
+                  {(["light", "dark", "system"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTheme(t)}
+                      className={cn(
+                        "min-h-9 flex-1 rounded-[var(--v2-radius-md)] border text-[var(--v2-text-sm)] font-medium capitalize",
+                        theme === t
+                          ? "border-[var(--v2-primary)] bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
+                          : "border-[var(--v2-border)] text-[var(--v2-fg-muted)]",
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => router.push("/dashboard")}
+                  >
+                    Open dashboard
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => void signOut({ callbackUrl: "/" })}
+                  >
+                    Log out
+                  </Button>
+                </CardBody>
+              </Card>
+            </>
+          ) : null}
+
+          <div className="sticky bottom-4 flex justify-end lg:static">
+            <Button size="sm" loading={pending} onClick={() => void save()}>
+              Save all changes
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function ListEditor({
+  title,
+  empty,
+  count,
+  onAdd,
+  children,
+}: {
+  title: string;
+  empty: string;
+  count: number;
+  onAdd: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-[var(--v2-text-sm)] font-semibold">{title}</h2>
+        <Button size="sm" variant="secondary" onClick={onAdd}>
+          Add
+        </Button>
+      </CardHeader>
+      <CardBody className="flex flex-col gap-3 pt-0">
+        {count === 0 ? (
+          <p className="text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+            {empty}
+          </p>
+        ) : (
+          children
+        )}
+      </CardBody>
+    </Card>
   );
 }

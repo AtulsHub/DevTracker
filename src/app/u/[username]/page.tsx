@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   return {
     title: `@${username}`,
-    description: `Public coding profile for @${username} on DevTrack`,
+    description: `Public profile for @${username} on DevTrack`,
   };
 }
 
@@ -42,6 +42,14 @@ export default async function PublicUserPage({ params }: Props) {
       skills={data.skills}
       websiteUrl={data.websiteUrl}
       githubUrl={data.githubUrl}
+      linkedinUrl={data.linkedinUrl}
+      twitterUrl={data.twitterUrl}
+      resumeUrl={data.resumeUrl}
+      openToWork={data.openToWork}
+      education={data.education}
+      experience={data.experience}
+      projects={data.projects}
+      certifications={data.certifications}
       platforms={data.platforms}
       totalSolved={data.totalSolved}
       isOwner={data.isOwner}
