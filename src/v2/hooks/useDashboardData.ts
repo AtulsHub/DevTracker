@@ -11,6 +11,15 @@ import { platformLabel } from "@/v2/lib/platforms";
 
 type Day = { date: string; count: number };
 
+export type AcceptedSolveRow = {
+  id: string;
+  platform: string;
+  title: string;
+  url: string | null;
+  rating: number | null;
+  solvedAt: Date | string;
+};
+
 function toYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -85,10 +94,16 @@ function mergeSeries(maps: Map<string, number>[]): Map<string, number> {
   return out;
 }
 
+function inWindow(at: Date | string, from: Date, to: Date) {
+  const t = new Date(at).getTime();
+  return t >= from.getTime() && t <= to.getTime();
+}
+
 export function useDashboardData({
   filtersApi,
   platforms,
   recent,
+  acceptedSolves = [],
   heatmapAllTime,
   heatmapAllTimeByPlatform,
   heatmapYearOverride,
@@ -96,6 +111,8 @@ export function useDashboardData({
   filtersApi: DashboardFiltersApi;
   platforms: PlatformStat[];
   recent: RecentSolve[];
+  /** First-AC rows — drives This week / in-range / difficulty (not calendar). */
+  acceptedSolves?: AcceptedSolveRow[];
   heatmapAllTime: Day[];
   heatmapAllTimeByPlatform: Record<string, Day[]>;
   /** When set, heatmap uses this calendar year instead of filter range */
@@ -118,7 +135,7 @@ export function useDashboardData({
 
     const mergedMap = mergeSeries([...perPlatformMaps.values()]);
 
-    // Activity / streak window = filter range
+    // Activity / streak window = filter range (calendar / heatmap)
     const activitySeries = fillWindow(window.from, window.to, mergedMap);
     const activityByPlatform: Record<string, Day[]> = {};
     for (const id of selectedPlatforms) {
@@ -153,18 +170,33 @@ export function useDashboardData({
       selectedPlatforms.includes(p.platform),
     );
     const totalSolved = selectedStats.reduce((s, p) => s + p.solvedCount, 0);
-    const solvesInRange = activitySeries.reduce((s, d) => s + d.count, 0);
-    const thisWeekMap = fillWindow(
-      (() => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() - 6);
-        return d;
-      })(),
-      new Date(),
-      mergedMap,
+
+    const weekFrom = new Date();
+    weekFrom.setHours(0, 0, 0, 0);
+    weekFrom.setDate(weekFrom.getDate() - 6);
+    const weekTo = new Date();
+    weekTo.setHours(23, 59, 59, 999);
+
+    const scopedSolves = acceptedSolves.filter((s) =>
+      selectedPlatforms.includes(s.platform),
     );
-    const thisWeek = thisWeekMap.reduce((s, d) => s + d.count, 0);
+
+    let solvesInWindow = scopedSolves.filter((s) =>
+      inWindow(s.solvedAt, window.from, window.to),
+    );
+
+    if (filters.difficulty.length > 0) {
+      solvesInWindow = solvesInWindow.filter((s) => {
+        const d = ratingToDifficulty(s.rating);
+        return d != null && filters.difficulty.includes(d);
+      });
+    }
+
+    const thisWeek = scopedSolves.filter((s) =>
+      inWindow(s.solvedAt, weekFrom, weekTo),
+    ).length;
+    const solvesInRange = solvesInWindow.length;
+
     const streak = computeStreak(
       fillWindow(
         (() => {
@@ -190,8 +222,8 @@ export function useDashboardData({
         perPlatformMaps.get(id) ?? new Map(),
       );
       const stat = platforms.find((p) => p.platform === id);
-      const ratings = recent
-        .filter((r) => r.platform === id)
+      const platformSolves = solvesInWindow.filter((s) => s.platform === id);
+      const ratings = platformSolves
         .map((r) => r.rating)
         .filter((r): r is number => r != null);
       const avgDifficulty =
@@ -202,7 +234,7 @@ export function useDashboardData({
         platform: id,
         label: platformLabel(id),
         solvedCount: stat?.solvedCount ?? 0,
-        solvesInRange: series.reduce((s, d) => s + d.count, 0),
+        solvesInRange: platformSolves.length,
         streak: computeStreak(full, todayYmd),
         lastActive: lastActive(full),
         avgRating: avgDifficulty,
@@ -218,15 +250,13 @@ export function useDashboardData({
     if (filters.difficulty.length > 0) {
       filteredRecent = filteredRecent.filter((r) => {
         const d = ratingToDifficulty(r.rating);
-        // Keep unknowns when filtering would otherwise empty the feed unfairly? Spec: filter.
-        // Items without rating are excluded when difficulty filter is active.
         return d != null && filters.difficulty.includes(d);
       });
     }
-    // status: we only ingest accepted (OK) submissions into recent solves
-    if (filters.status.includes("failed") && !filters.status.includes("accepted")) {
-      filteredRecent = [];
-    }
+
+    filteredRecent = filteredRecent.filter(
+      (r) => !r.verdict || r.verdict === "OK",
+    );
 
     const scopeLabel =
       selectedPlatforms.length === platforms.length ||
@@ -235,6 +265,20 @@ export function useDashboardData({
         : selectedPlatforms.length === 1
           ? platformLabel(selectedPlatforms[0]!)
           : `${selectedPlatforms.length} platforms`;
+
+    const difficultyMix = {
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      unknown: 0,
+    };
+    for (const r of solvesInWindow) {
+      const d = ratingToDifficulty(r.rating);
+      if (d == null) difficultyMix.unknown += 1;
+      else difficultyMix[d] += 1;
+    }
+    const difficultyRated =
+      difficultyMix.easy + difficultyMix.medium + difficultyMix.hard;
 
     return {
       fromYmd,
@@ -250,6 +294,8 @@ export function useDashboardData({
       heatmapByPlatform,
       perPlatform,
       recent: filteredRecent,
+      difficultyMix,
+      difficultyRated,
       hasLinked: platforms.length > 0,
       emptyInRange:
         solvesInRange === 0 &&
@@ -262,6 +308,7 @@ export function useDashboardData({
     filters,
     platforms,
     recent,
+    acceptedSolves,
     heatmapAllTime,
     heatmapAllTimeByPlatform,
     heatmapYearOverride,

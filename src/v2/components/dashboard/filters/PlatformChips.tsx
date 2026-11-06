@@ -1,7 +1,11 @@
 "use client";
 
 import { cn } from "@/v2/lib/cn";
-import { LINKABLE_PLATFORMS, platformColor, platformLabel } from "@/v2/lib/platforms";
+import {
+  LINKABLE_PLATFORMS,
+  platformColor,
+  platformLabel,
+} from "@/v2/lib/platforms";
 
 export function PlatformChips({
   linked,
@@ -23,7 +27,7 @@ export function PlatformChips({
   const unlinked = LINKABLE_PLATFORMS.filter((id) => !linkedSet.has(id));
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <div
         className="flex flex-wrap gap-1.5"
         role="group"
@@ -35,9 +39,9 @@ export function PlatformChips({
           onClick={onSelectAll}
           disabled={linked.length === 0}
           className={cn(
-            "min-h-8 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-colors duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
+            "min-h-8 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-[background-color,border-color,color,transform] duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
             allSelected
-              ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-on-primary)]"
+              ? "border-transparent bg-[var(--v2-primary)] text-[var(--v2-on-primary)] shadow-[var(--v2-shadow-sm)]"
               : "border-[var(--v2-border)] bg-[var(--v2-bg)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
           )}
         >
@@ -53,17 +57,24 @@ export function PlatformChips({
               aria-pressed={on}
               onClick={() => onToggle(id)}
               className={cn(
-                "inline-flex min-h-8 items-center gap-1.5 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-colors duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
+                "inline-flex min-h-8 items-center gap-1.5 rounded-[var(--v2-radius-md)] border px-2.5 text-[var(--v2-text-xs)] font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
                 on
-                  ? "border-transparent text-white"
+                  ? "border-transparent text-white shadow-[var(--v2-shadow-sm)]"
                   : "border-[var(--v2-border)] bg-[var(--v2-bg)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]",
               )}
-              style={on ? { background: color } : undefined}
+              style={
+                on
+                  ? {
+                      background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 72%, #0f172a))`,
+                    }
+                  : undefined
+              }
             >
               <span
                 className="size-1.5 rounded-full"
                 style={{
-                  background: on ? "rgba(255,255,255,0.9)" : color,
+                  background: on ? "rgba(255,255,255,0.95)" : color,
+                  boxShadow: on ? `0 0 0 2px color-mix(in srgb, ${color} 35%, transparent)` : undefined,
                 }}
                 aria-hidden
               />
@@ -75,7 +86,7 @@ export function PlatformChips({
 
       {unlinked.length > 0 ? (
         <div
-          className="flex flex-wrap items-center gap-1.5"
+          className="flex flex-wrap items-center gap-1.5 rounded-[var(--v2-radius-md)] border border-dashed border-[var(--v2-border-subtle)] bg-[var(--v2-bg)]/40 px-2.5 py-2"
           role="group"
           aria-label="Platforms not linked yet"
         >
@@ -88,15 +99,17 @@ export function PlatformChips({
               type="button"
               title={`Link ${platformLabel(id)} to include it in filters`}
               onClick={() => onLinkPlatform?.(id)}
-              className="inline-flex min-h-7 items-center gap-1.5 rounded-[var(--v2-radius-md)] border border-dashed border-[var(--v2-border)] px-2 text-[11px] text-[var(--v2-fg-subtle)] transition-colors hover:border-[var(--v2-primary)] hover:text-[var(--v2-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]"
+              className="inline-flex min-h-7 items-center gap-1.5 rounded-[var(--v2-radius-md)] border border-dashed border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] px-2 text-[11px] text-[var(--v2-fg-subtle)] transition-colors hover:border-[var(--v2-primary)] hover:text-[var(--v2-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]"
             >
               <span
-                className="size-1.5 rounded-full opacity-60"
+                className="size-1.5 rounded-full opacity-70"
                 style={{ background: platformColor(id) }}
                 aria-hidden
               />
               {platformLabel(id)}
-              <span className="text-[10px] text-[var(--v2-primary)]">Link</span>
+              <span className="text-[10px] font-medium text-[var(--v2-primary)]">
+                Link
+              </span>
             </button>
           ))}
         </div>

@@ -158,6 +158,7 @@ export const v2Api = {
     api<{ leaderboard: LeaderboardDto[]; range: string }>(
       `/api/teams/${slug}/leaderboard?range=${range}`,
     ),
+  myTargets: () => api<{ targets: TargetDto[] }>("/api/targets"),
   teamTargets: (teamId: string) =>
     api<{ targets: TargetDto[] }>(`/api/targets?teamId=${teamId}`),
   createTarget: (body: Record<string, unknown>) =>
@@ -305,6 +306,7 @@ export interface TargetDto {
   title: string;
   description?: string | null;
   type: string;
+  teamId?: string | null;
   criteria?: Record<string, unknown> | null;
   startsAt?: string | Date | null;
   endsAt?: string | Date | null;
@@ -323,4 +325,7 @@ export interface TargetDto {
   }>;
   completedCount?: number;
   assigneeCount?: number;
+  teamName?: string | null;
+  teamSlug?: string | null;
+  source?: "personal" | "team";
 }

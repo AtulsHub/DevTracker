@@ -11,6 +11,7 @@ import {
 import { cn } from "@/v2/lib/cn";
 import { useTheme } from "./ThemeProvider";
 import { UserAccountMenu } from "./UserAccountMenu";
+import { siteHomeHref } from "@/v2/lib/site";
 import { LayoutTemplate, Moon, Sun, Monitor } from "lucide-react";
 
 function NavLink({
@@ -111,7 +112,7 @@ export function Sidebar({
       {/* Tablet icon rail */}
       <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-rail-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/90 backdrop-blur-md md:flex lg:hidden">
         <Link
-          href={signedIn ? "/dashboard" : "/"}
+          href={siteHomeHref(signedIn)}
           className="flex h-[var(--v2-topbar-h)] items-center justify-center font-mono text-sm font-bold text-[var(--v2-primary)] no-underline"
         >
           DT
@@ -137,7 +138,7 @@ export function Sidebar({
       <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-sidebar-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/92 backdrop-blur-md lg:flex">
         <div className="flex h-[var(--v2-topbar-h)] items-center px-4">
           <Link
-            href={signedIn ? "/dashboard" : "/"}
+            href={siteHomeHref(signedIn)}
             className="flex items-center gap-2.5 no-underline"
           >
             <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-[var(--v2-on-primary)]">

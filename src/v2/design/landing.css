@@ -1,7 +1,6 @@
 /**
  * Marketing landing — follows app theme (html[data-theme]).
  * Surfaces/text come from --v2-* so light/dark stay consistent.
- * Accent stays lime for marketing energy without fighting chrome.
  */
 
 .landing {
@@ -13,8 +12,8 @@
   /* CTA fill + label follow theme: white text in light, black in dark */
   --land-accent: var(--v2-primary);
   --land-accent-fg: var(--v2-on-primary);
-  --land-band: #111814;
-  --land-band-fg: #f3f6f1;
+  --land-band: #11151c;
+  --land-band-fg: #eef2f7;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 62%, transparent);
   --land-heat: var(--v2-primary);
   --land-display: var(--font-landing-display), "Avenir Next", sans-serif;
@@ -25,21 +24,21 @@
 }
 
 [data-theme="dark"] .landing {
-  --land-accent: #c8f542;
-  --land-accent-fg: #0a0a0a; /* black on lime */
-  --land-band: #0e1310;
-  --land-band-fg: #eef2ec;
+  --land-accent: var(--v2-primary);
+  --land-accent-fg: var(--v2-on-primary);
+  --land-band: #11151c;
+  --land-band-fg: #eef2f7;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 60%, transparent);
-  --land-heat: #c8f542;
+  --land-heat: var(--v2-primary);
 }
 
 [data-theme="light"] .landing {
-  --land-accent: #4338ca;
-  --land-accent-fg: #ffffff; /* white on indigo */
+  --land-accent: var(--v2-primary);
+  --land-accent-fg: var(--v2-on-primary);
   --land-band: #0f172a;
   --land-band-fg: #f1f5f9;
   --land-band-muted: color-mix(in srgb, var(--land-band-fg) 64%, transparent);
-  --land-heat: #6366f1;
+  --land-heat: var(--v2-accent);
 }
 
 /* Do NOT set `a { color: inherit }` — it overrides CTA label colors. */

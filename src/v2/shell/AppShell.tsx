@@ -21,25 +21,42 @@ export function AppShell({
   userImage?: string | null;
 }) {
   const pathname = usePathname();
-  // Marketing landing stays chrome-free even when signed in.
-  const showMarketingChrome = !signedIn || pathname === "/landing";
+  // Marketing pages use GuestShell (Home / socials / profile) even when signed in.
+  const showMarketingChrome =
+    !signedIn || pathname === "/" || pathname === "/landing";
 
   if (showMarketingChrome) {
-    return <GuestShell signedIn={signedIn}>{children}</GuestShell>;
+    return (
+      <GuestShell
+        signedIn={signedIn}
+        userName={userName}
+        userEmail={userEmail}
+        userImage={userImage}
+      >
+        {children}
+      </GuestShell>
+    );
   }
 
   return (
     <ThemeProvider>
-      <div className="flex min-h-dvh bg-[var(--v2-bg)] text-[var(--v2-fg)]">
+      <div
+        className="flex min-h-dvh text-[var(--v2-fg)]"
+        style={{
+          backgroundColor: "var(--v2-bg)",
+          backgroundImage: "var(--v2-bg-glow)",
+          backgroundAttachment: "fixed",
+        }}
+      >
         <Sidebar
           signedIn
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
         />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col bg-transparent">
           <TopBar signedIn />
-          <main className="flex-1 overflow-x-hidden pb-[calc(var(--v2-bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] md:pb-8">
+          <main className="flex-1 overflow-x-hidden bg-transparent pb-[calc(var(--v2-bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] md:pb-8">
             {children}
           </main>
         </div>

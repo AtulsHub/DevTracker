@@ -10,6 +10,7 @@ import {
   problems,
   platformEnum,
   users,
+  teams,
   dailyActivity,
   platformAccounts,
   contestResults,
@@ -52,37 +53,57 @@ export interface TargetWithProgress {
   memberProgress?: TargetMemberProgress[];
   completedCount?: number;
   assigneeCount?: number;
+  /** Present on Overview: personal vs joined-team */
+  teamName?: string | null;
+  teamSlug?: string | null;
+  source?: "personal" | "team";
 }
 
-export async function getUserTargets(userId: string) {
-  const userTargets = await db.query.targets.findMany({
-    where: eq(targets.createdBy, userId),
-    orderBy: [desc(targets.createdAt)],
+/**
+ * Targets assigned to the user — personal (teamId null) and joined-team goals.
+ * Powers Overview. Prefer this over creator-only listing.
+ */
+export async function getOverviewTargets(userId: string) {
+  const rows = await db
+    .select({
+      target: targets,
+      currentValue: targetProgress.currentValue,
+      goalValue: targetProgress.goalValue,
+      status: targetProgress.status,
+      updatedAt: targetProgress.updatedAt,
+      teamName: teams.name,
+      teamSlug: teams.slug,
+    })
+    .from(targetProgress)
+    .innerJoin(targets, eq(targets.id, targetProgress.targetId))
+    .leftJoin(teams, eq(teams.id, targets.teamId))
+    .where(eq(targetProgress.userId, userId))
+    .orderBy(desc(targets.createdAt));
+
+  void Promise.all(
+    rows.map((r) => recalculateTarget(r.target.id).catch(() => null)),
+  );
+
+  return rows.map((r) => {
+    const source: "personal" | "team" = r.target.teamId ? "team" : "personal";
+    return {
+      ...r.target,
+      progress: {
+        currentValue: r.currentValue,
+        goalValue: r.goalValue,
+        isCompleted: r.status === "completed",
+        lastUpdatedAt: r.updatedAt,
+      },
+      teamName: r.teamName ?? null,
+      teamSlug: r.teamSlug ?? null,
+      source,
+    } satisfies TargetWithProgress;
   });
+}
 
-  const result: TargetWithProgress[] = [];
-  for (const target of userTargets) {
-    const progress = await db.query.targetProgress.findFirst({
-      where: and(
-        eq(targetProgress.targetId, target.id),
-        eq(targetProgress.userId, userId),
-      ),
-    });
-
-    result.push({
-      ...target,
-      progress: progress
-        ? {
-            currentValue: progress.currentValue,
-            goalValue: progress.goalValue,
-            isCompleted: progress.status === "completed",
-            lastUpdatedAt: progress.updatedAt,
-          }
-        : null,
-    });
-  }
-
-  return result;
+/** @deprecated Prefer getOverviewTargets for personal dashboards */
+export async function getUserTargets(userId: string) {
+  return getOverviewTargets(userId);
 }
 
 export async function getTeamTargets(teamId: string, userId: string) {
@@ -178,14 +199,12 @@ export async function createTarget(data: {
       ? data.assigneeIds
       : [data.userId];
 
-  if (data.assigneeIds && data.assigneeIds.length > 0) {
-    await db.insert(targetAssignees).values(
-      data.assigneeIds.map((uid) => ({
-        targetId: target.id,
-        userId: uid,
-      })),
-    );
-  }
+  await db.insert(targetAssignees).values(
+    assignees.map((uid) => ({
+      targetId: target.id,
+      userId: uid,
+    })),
+  );
 
   await db.insert(targetProgress).values(
     assignees.map((uid) => ({
@@ -196,6 +215,8 @@ export async function createTarget(data: {
       status: "active" as const,
     })),
   );
+
+  await recalculateTarget(target.id).catch(() => null);
 
   return target;
 }

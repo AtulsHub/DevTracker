@@ -3,10 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/v2/lib/cn";
-import type {
-  DifficultyKey,
-  StatusKey,
-} from "@/v2/components/dashboard/filters/types";
+import type { DifficultyKey } from "@/v2/components/dashboard/filters/types";
 
 function ToggleChip({
   pressed,
@@ -36,16 +33,15 @@ function ToggleChip({
 
 export function MoreFilters({
   difficulty,
-  status,
   activeCount,
   onDifficultyChange,
-  onStatusChange,
 }: {
   difficulty: DifficultyKey[];
-  status: StatusKey[];
+  /** @deprecated Status filter lives on All submissions; kept optional for callers */
+  status?: string[];
   activeCount: number;
   onDifficultyChange: (next: DifficultyKey[]) => void;
-  onStatusChange: (next: StatusKey[]) => void;
+  onStatusChange?: (next: never[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -72,12 +68,6 @@ export function MoreFilters({
       difficulty.includes(key)
         ? difficulty.filter((d) => d !== key)
         : [...difficulty, key],
-    );
-  }
-
-  function toggleStatus(key: StatusKey) {
-    onStatusChange(
-      status.includes(key) ? status.filter((s) => s !== key) : [...status, key],
     );
   }
 
@@ -109,16 +99,16 @@ export function MoreFilters({
           id={panelId}
           role="dialog"
           aria-label="More filters"
-          className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(18rem,calc(100vw-2rem))] rounded-[var(--v2-radius-lg)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] p-3 shadow-[var(--v2-shadow-md)]"
+          className="absolute right-0 top-[calc(100%+6px)] z-[80] w-[min(18rem,calc(100vw-2rem))] rounded-[var(--v2-radius-lg)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] p-3 shadow-[var(--v2-shadow-md)]"
         >
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--v2-fg-subtle)]">
             Difficulty
           </p>
           <p className="mb-2 text-[10px] text-[var(--v2-fg-subtle)]">
             Based on problem rating when available (Easy &lt;1200, Medium
-            &lt;1600, Hard 1600+).
+            &lt;1600, Hard 1600+). Wrong attempts are on All submissions.
           </p>
-          <div className="mb-3 flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {(["easy", "medium", "hard"] as DifficultyKey[]).map((d) => (
               <ToggleChip
                 key={d}
@@ -126,23 +116,6 @@ export function MoreFilters({
                 onClick={() => toggleDiff(d)}
               >
                 {d[0]!.toUpperCase() + d.slice(1)}
-              </ToggleChip>
-            ))}
-          </div>
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--v2-fg-subtle)]">
-            Status
-          </p>
-          <p className="mb-2 text-[10px] text-[var(--v2-fg-subtle)]">
-            Recent feed currently stores accepted solves only.
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {(["accepted", "failed"] as StatusKey[]).map((s) => (
-              <ToggleChip
-                key={s}
-                pressed={status.includes(s)}
-                onClick={() => toggleStatus(s)}
-              >
-                {s[0]!.toUpperCase() + s.slice(1)}
               </ToggleChip>
             ))}
           </div>

@@ -53,7 +53,7 @@ export function RangeControl({
   return (
     <div className="relative" ref={ref}>
       <div
-        className="flex rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] p-0.5"
+        className="flex rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)]/80 p-0.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--v2-fg)_4%,transparent)]"
         role="group"
         aria-label="Time range"
       >
@@ -77,8 +77,8 @@ export function RangeControl({
             className={cn(
               "min-h-7 rounded-[6px] px-2.5 text-[var(--v2-text-xs)] font-medium transition-colors duration-[var(--v2-duration)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v2-primary)]",
               range === p.id
-                ? "bg-[var(--v2-bg-muted)] text-[var(--v2-fg)]"
-                : "text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)]",
+                ? "bg-[var(--v2-primary)] text-[var(--v2-on-primary)] shadow-[var(--v2-shadow-sm)]"
+                : "text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]",
             )}
           >
             {p.label}

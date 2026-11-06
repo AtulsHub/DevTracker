@@ -13,12 +13,17 @@ import {
   getHeatmapByPlatform,
   getPlatformStats,
   getRecentSolves,
+  getAllSubmissions,
+  getAcceptedSolveDetails,
   getStreak,
   getTotalSolved,
   getDailyActivity,
 } from "@/server/services/activity";
+import { getOverviewTargets } from "@/server/services/targets";
 import { todayLocalDateStr } from "@/lib/date";
 import { contests } from "@/server/db/schema";
+
+export { getAllSubmissions };
 
 /**
  * Ensure the DB has upcoming contests. Refreshes from aggregators/adapters when
@@ -60,13 +65,17 @@ export async function loadDashboardData(userId: string) {
     todayActivity,
     recent,
     totalSolved,
+    overviewTargets,
+    acceptedSolves,
   ] = await Promise.all([
     getHeatmapByPlatform(userId),
     getStreak(userId),
     getPlatformStats(userId),
     getDailyActivity(userId, today),
-    getRecentSolves(userId, 80),
+    getRecentSolves(userId, 80, "accepted"),
     getTotalSolved(userId),
+    getOverviewTargets(userId),
+    getAcceptedSolveDetails(userId),
   ]);
   return {
     heatmap: heatmapSeries.year.all,
@@ -80,6 +89,8 @@ export async function loadDashboardData(userId: string) {
     todaySolved: todayActivity.solvedCount,
     recent,
     totalSolved,
+    overviewTargets,
+    acceptedSolves,
   };
 }
 

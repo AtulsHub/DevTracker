@@ -103,7 +103,7 @@ export function UserAccountMenu({
           className={cn(
             "absolute z-[var(--v2-z-sheet)] min-w-[220px] overflow-hidden rounded-[var(--v2-radius-lg)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] shadow-[var(--v2-shadow-lg)]",
             compact
-              ? "bottom-full left-1/2 mb-2 -translate-x-1/2"
+              ? "top-full right-0 mt-2"
               : "bottom-full left-0 right-0 mb-2",
           )}
         >

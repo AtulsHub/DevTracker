@@ -9,12 +9,14 @@ import {
   MANAGEMENT_NAV,
   isActive,
 } from "./nav";
+import { siteHomeHref } from "@/v2/lib/site";
 import { cn } from "@/v2/lib/cn";
 
 function titleFor(pathname: string) {
   for (const item of [...WORKSPACE_NAV, ...MANAGEMENT_NAV, ...PRIMARY_NAV]) {
     if (isActive(pathname, item)) return item.label;
   }
+  if (pathname.startsWith("/dashboard/submissions")) return "Submissions";
   if (pathname.startsWith("/dashboard")) return "Overview";
   if (pathname.startsWith("/settings")) return "Settings";
   if (pathname.startsWith("/sign-")) return "Account";
@@ -34,13 +36,13 @@ export function TopBar({ signedIn }: { signedIn: boolean }) {
         "v2-topbar sticky top-0 z-[var(--v2-z-nav)] flex h-[var(--v2-topbar-h)] items-center justify-between gap-3 px-4 md:px-6",
         landingGuest
           ? "border-b border-transparent bg-transparent"
-          : "border-b border-[var(--v2-border)] bg-[var(--v2-bg)]/85 backdrop-blur-md",
+          : "border-b border-[var(--v2-border)] bg-[color-mix(in_srgb,var(--v2-bg-elevated)_78%,transparent)] backdrop-blur-md",
       )}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex min-w-0 items-center gap-3">
         <Link
-          href={signedIn ? "/dashboard" : "/"}
+          href={siteHomeHref(signedIn)}
           className="flex items-center gap-2 no-underline md:hidden"
         >
           <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[10px] font-bold text-[var(--v2-on-primary)]">

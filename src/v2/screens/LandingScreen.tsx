@@ -3,6 +3,7 @@ import { Syne, DM_Sans } from "next/font/google";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import type { ContestDto } from "@/v2/lib/api";
+import { MARKETING_NAV, SITE_SOCIAL } from "@/v2/lib/site";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -259,8 +260,97 @@ export function LandingScreen({
         </div>
       </section>
 
-      <footer className="border-t border-[var(--land-line)] bg-[var(--land-bg)] px-5 py-8 text-center font-mono text-[11px] text-[var(--land-muted)] sm:px-8">
-        DevTrack · built for competitive programmers
+      <footer className="border-t border-[var(--land-line)] bg-[var(--land-bg)] px-5 py-10 sm:px-8">
+        <div className="mx-auto flex max-w-[var(--v2-content-max)] flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="landing-display text-lg font-semibold text-[var(--land-fg)]">
+              DevTrack
+            </p>
+            <p className="mt-2 max-w-xs text-[var(--v2-text-sm)] text-[var(--land-muted)]">
+              Built for competitive programmers who want one pulse across every
+              platform.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-8">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--land-muted)]">
+                Product
+              </p>
+              <ul className="mt-3 space-y-2 text-[var(--v2-text-sm)]">
+                {[
+                  { href: "/", label: "Home" },
+                  ...MARKETING_NAV.map((l) => ({
+                    href: l.href,
+                    label: l.label,
+                  })),
+                ].map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--land-muted)]">
+                Account
+              </p>
+              <ul className="mt-3 space-y-2 text-[var(--v2-text-sm)]">
+                <li>
+                  <Link
+                    href="/sign-in"
+                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                  >
+                    Sign in
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/sign-up"
+                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                  >
+                    Sign up
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                  >
+                    Open app
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--land-muted)]">
+                Social
+              </p>
+              <ul className="mt-3 space-y-2 text-[var(--v2-text-sm)]">
+                {SITE_SOCIAL.map((s) => (
+                  <li key={s.id}>
+                    <a
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                    >
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <p className="mx-auto mt-10 max-w-[var(--v2-content-max)] font-mono text-[11px] text-[var(--land-muted)]">
+          © {new Date().getFullYear()} DevTrack · built for competitive
+          programmers
+        </p>
       </footer>
     </div>
   );

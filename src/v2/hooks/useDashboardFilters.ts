@@ -301,11 +301,11 @@ export function useDashboardFilters(linkedPlatforms: string[]) {
     if (filters.range !== DEFAULT_FILTERS.range) n += 1;
     if (filters.compare) n += 1;
     if (filters.difficulty.length) n += 1;
-    if (filters.status.length) n += 1;
     return n;
   }, [filters]);
 
-  const moreFilterCount = filters.difficulty.length + filters.status.length;
+  /** Difficulty only — submission status belongs on All submissions. */
+  const moreFilterCount = filters.difficulty.length;
 
   const summary = useMemo(() => {
     const plats =

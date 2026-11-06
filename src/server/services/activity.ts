@@ -440,8 +440,28 @@ export async function getPlatformStats(userId: string) {
   });
 }
 
-/** Recent accepted solves across all platforms (for dashboard feed). */
-export async function getRecentSolves(userId: string, limit = 15) {
+export type SubmissionFeedItem = {
+  id: string;
+  platform: string;
+  handle: string;
+  title: string;
+  url: string | null;
+  rating: number | null;
+  externalId: string;
+  language: string | null;
+  verdict: string;
+  submittedAt: Date;
+};
+
+/**
+ * Recent submissions. Default is accepted-only for Overview / stats feeds.
+ * Pass mode: "all" for the full submissions history (includes WA/TLE/…).
+ */
+export async function getRecentSolves(
+  userId: string,
+  limit = 15,
+  mode: "accepted" | "all" = "accepted",
+): Promise<SubmissionFeedItem[]> {
   const accounts = await db.query.platformAccounts.findMany({
     where: eq(platformAccounts.userId, userId),
     columns: { id: true, platform: true, handle: true },
@@ -457,6 +477,7 @@ export async function getRecentSolves(userId: string, limit = 15) {
       platformAccountId: submissions.platformAccountId,
       submittedAt: submissions.submittedAt,
       language: submissions.language,
+      verdict: submissions.verdict,
       problemTitle: problems.title,
       problemUrl: problems.url,
       problemRating: problems.rating,
@@ -466,10 +487,12 @@ export async function getRecentSolves(userId: string, limit = 15) {
     .from(submissions)
     .innerJoin(problems, eq(submissions.problemId, problems.id))
     .where(
-      and(
-        inArray(submissions.platformAccountId, accountIds),
-        eq(submissions.verdict, "OK"),
-      ),
+      mode === "accepted"
+        ? and(
+            inArray(submissions.platformAccountId, accountIds),
+            eq(submissions.verdict, "OK"),
+          )
+        : inArray(submissions.platformAccountId, accountIds),
     )
     .orderBy(desc(submissions.submittedAt))
     .limit(limit);
@@ -485,9 +508,56 @@ export async function getRecentSolves(userId: string, limit = 15) {
       rating: r.problemRating,
       externalId: r.problemExternalId,
       language: r.language,
+      verdict: r.verdict,
       submittedAt: r.submittedAt,
     };
   });
+}
+
+/** Full submission history including wrong attempts. */
+export async function getAllSubmissions(userId: string, limit = 500) {
+  return getRecentSolves(userId, limit, "all");
+}
+
+export type AcceptedSolveDetail = {
+  id: string;
+  platform: string;
+  title: string;
+  url: string | null;
+  rating: number | null;
+  solvedAt: Date;
+};
+
+/**
+ * First-accepted solves (unique problems) — source of truth for Overview
+ * volume stats + difficulty mix. Heatmap may still use platform calendars
+ * which can count more days than we have synced submission rows for.
+ */
+export async function getAcceptedSolveDetails(
+  userId: string,
+): Promise<AcceptedSolveDetail[]> {
+  const rows = await db
+    .select({
+      id: solves.id,
+      platform: problems.platform,
+      title: problems.title,
+      url: problems.url,
+      rating: problems.rating,
+      solvedAt: solves.firstSolvedAt,
+    })
+    .from(solves)
+    .innerJoin(problems, eq(solves.problemId, problems.id))
+    .where(eq(solves.userId, userId))
+    .orderBy(desc(solves.firstSolvedAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    platform: r.platform,
+    title: r.title,
+    url: r.url,
+    rating: r.rating,
+    solvedAt: r.solvedAt,
+  }));
 }
 
 export async function getTotalSolved(userId: string): Promise<number> {

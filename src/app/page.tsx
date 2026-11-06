@@ -33,28 +33,52 @@ export default async function HomePage() {
     return <LandingScreen contests={serialized} featured={featured} />;
   }
 
-  let quickStats: {
-    totalSolved: number;
-    streak: number;
-    platforms: number;
-  } | null = null;
+  const dash = await loadDashboardData(session.user.id);
+  const continuePlatform =
+    [...dash.platforms]
+      .sort((a, b) => {
+        const at = a.lastSyncedAt ? new Date(a.lastSyncedAt).getTime() : 0;
+        const bt = b.lastSyncedAt ? new Date(b.lastSyncedAt).getTime() : 0;
+        return bt - at;
+      })
+      .map((p) => ({
+        platform: p.platform,
+        handle: p.handle,
+        lastSyncedAt: p.lastSyncedAt
+          ? p.lastSyncedAt instanceof Date
+            ? p.lastSyncedAt.toISOString()
+            : String(p.lastSyncedAt)
+          : null,
+        syncError: p.syncError,
+      }))[0] ?? null;
 
-  if (session?.user?.id) {
-    const dash = await loadDashboardData(session.user.id);
-    quickStats = {
-      totalSolved: dash.totalSolved,
-      streak: dash.streak,
-      platforms: dash.platforms.length,
-    };
-  }
+  const activeTarget =
+    dash.overviewTargets.find((t) => t.progress && !t.progress.isCompleted) ??
+    null;
 
   return (
     <HomeScreen
-      signedIn
       username={session?.user?.name ?? session?.user?.email}
       contests={serialized}
-      quickStats={quickStats}
+      today={{
+        todaySolved: dash.todaySolved,
+        streak: dash.streak,
+        totalSolved: dash.totalSolved,
+      }}
+      continuePlatform={continuePlatform}
+      needsLink={dash.platforms.length === 0}
       featured={featured}
+      activeTarget={
+        activeTarget
+          ? {
+              title: activeTarget.title,
+              current: activeTarget.progress!.currentValue,
+              goal: activeTarget.progress!.goalValue,
+              source: activeTarget.source ?? "personal",
+              teamName: activeTarget.teamName ?? null,
+            }
+          : null
+      }
     />
   );
 }

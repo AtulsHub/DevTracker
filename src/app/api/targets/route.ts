@@ -8,7 +8,7 @@ import { auth } from "@/server/auth";
 import { z } from "zod";
 import {
   createTarget,
-  getUserTargets,
+  getOverviewTargets,
   getTeamTargets,
 } from "@/server/services/targets";
 import { db } from "@/server/db";
@@ -99,7 +99,7 @@ export async function GET(req: Request) {
     const teamId = searchParams.get("teamId");
     const targets = teamId
       ? await getTeamTargets(teamId, session.user.id)
-      : await getUserTargets(session.user.id);
+      : await getOverviewTargets(session.user.id);
     return NextResponse.json({ targets });
   } catch (err: unknown) {
     console.error("[GET /api/targets] Error:", err);

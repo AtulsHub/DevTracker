@@ -47,7 +47,8 @@ export const PLATFORMS: Record<PlatformId, PlatformMeta> = {
     label: "AtCoder",
     short: "AC",
     colorVar: "var(--v2-ac)",
-    color: "#e4e4e7",
+    /** Mid slate — readable on light UI; dark theme overrides via --v2-ac */
+    color: "#52525b",
     profileUrl: (h) => `https://atcoder.jp/users/${h}`,
   },
   codechef: {
