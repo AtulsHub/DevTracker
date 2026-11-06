@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  useMemo,
   useRef,
   useState,
   useTransition,
   type ReactNode,
 } from "react";
-import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardBody, CardHeader } from "@/v2/components/Card";
@@ -15,15 +13,15 @@ import { Button } from "@/v2/components/Button";
 import { Input } from "@/v2/components/Input";
 import { PageHeader } from "@/v2/components/PageHeader";
 import { v2Api } from "@/v2/lib/api";
-import { fileToAvatarDataUrl } from "@/v2/lib/avatar";
+import { uploadImage } from "@/v2/lib/upload";
 import {
   newEntryId,
   type CertificationEntry,
+  type CustomLinkEntry,
   type EducationEntry,
   type ExperienceEntry,
   type ProjectEntry,
 } from "@/v2/lib/profileTypes";
-import { useTheme } from "@/v2/shell/ThemeProvider";
 import { cn } from "@/v2/lib/cn";
 
 export type ProfileUser = {
@@ -41,14 +39,11 @@ export type ProfileUser = {
   resumeUrl: string | null;
   college: string | null;
   skills: string | null;
-  openToWork: boolean;
   education: EducationEntry[];
   experience: ExperienceEntry[];
   projects: ProjectEntry[];
   certifications: CertificationEntry[];
-  profileVisibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
-  timezone: string | null;
-  discoverable: boolean;
+  customLinks: CustomLinkEntry[];
 };
 
 type SectionId =
@@ -57,8 +52,7 @@ type SectionId =
   | "experience"
   | "education"
   | "projects"
-  | "certs"
-  | "prefs";
+  | "certs";
 
 const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "basics", label: "Basics" },
@@ -67,13 +61,11 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "education", label: "Education" },
   { id: "projects", label: "Projects" },
   { id: "certs", label: "Certifications" },
-  { id: "prefs", label: "Preferences" },
 ];
 
 export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const { theme, setTheme } = useTheme();
   const [pending, startTransition] = useTransition();
   const [section, setSection] = useState<SectionId>("basics");
 
@@ -89,7 +81,6 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   const [linkedinUrl, setLinkedinUrl] = useState(user.linkedinUrl ?? "");
   const [twitterUrl, setTwitterUrl] = useState(user.twitterUrl ?? "");
   const [resumeUrl, setResumeUrl] = useState(user.resumeUrl ?? "");
-  const [openToWork, setOpenToWork] = useState(user.openToWork);
   const [education, setEducation] = useState<EducationEntry[]>(
     user.education ?? [],
   );
@@ -100,32 +91,24 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
   const [certifications, setCertifications] = useState<CertificationEntry[]>(
     user.certifications ?? [],
   );
+  const [customLinks, setCustomLinks] = useState<CustomLinkEntry[]>(
+    user.customLinks ?? [],
+  );
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
-  const [visibility, setVisibility] = useState(user.profileVisibility);
-  const [discoverable, setDiscoverable] = useState(user.discoverable);
-  const [timezone, setTimezone] = useState(user.timezone ?? "UTC");
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  const timezones = useMemo(() => {
-    try {
-      return Intl.supportedValuesOf("timeZone");
-    } catch {
-      return ["UTC", "Asia/Kolkata", "America/New_York", "Europe/London"];
-    }
-  }, []);
 
   async function onPickAvatar(file: File | null) {
     if (!file) return;
     setUploading(true);
     setError(null);
     try {
-      const dataUrl = await fileToAvatarDataUrl(file);
-      setAvatarUrl(dataUrl);
-      setMsg("Photo ready — click Save to publish");
+      const url = await uploadImage(file, "avatars");
+      setAvatarUrl(url);
+      setMsg("Photo uploaded — click Save to publish");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not read image");
+      setError(e instanceof Error ? e.message : "Could not upload image");
     } finally {
       setUploading(false);
     }
@@ -153,15 +136,18 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
         linkedinUrl: linkedinUrl.trim() || null,
         twitterUrl: twitterUrl.trim() || null,
         resumeUrl: resumeUrl.trim() || null,
-        openToWork,
         education,
         experience,
         projects,
         certifications,
+        customLinks: customLinks
+          .map((l) => ({
+            id: l.id,
+            label: l.label.trim(),
+            url: l.url.trim(),
+          }))
+          .filter((l) => l.label && l.url),
         avatarUrl: avatarUrl || null,
-        profileVisibility: visibility,
-        discoverable,
-        timezone: timezone || "UTC",
       });
       setMsg("Profile saved");
       startTransition(() => router.refresh());
@@ -174,7 +160,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
         title="Edit profile"
-        description={`@${user.username} · build a clear public portfolio for coding and career`}
+        description={`@${user.username} · public portfolio content only. Visibility, theme, and account prefs are in Settings.`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/u/${user.username}`}>
@@ -183,7 +169,7 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
               </Button>
             </Link>
             <Button size="sm" loading={pending} onClick={() => void save()}>
-              Save all
+              Save
             </Button>
           </div>
         }
@@ -333,61 +319,112 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
                     value={skills}
                     onChange={(e) => setSkills(e.target.value)}
                   />
-                  <label className="flex items-center gap-2 text-[var(--v2-text-sm)] text-[var(--v2-fg)]">
-                    <input
-                      type="checkbox"
-                      checked={openToWork}
-                      onChange={(e) => setOpenToWork(e.target.checked)}
-                      className="size-4 accent-[var(--v2-primary)]"
-                    />
-                    Open to work / opportunities
-                  </label>
                 </CardBody>
               </Card>
             </>
           ) : null}
 
           {section === "links" ? (
-            <Card>
-              <CardHeader>
-                <h2 className="text-[var(--v2-text-sm)] font-semibold">
-                  Links & resume
-                </h2>
-              </CardHeader>
-              <CardBody className="flex flex-col gap-3 pt-0">
-                <Input
-                  label="Resume / CV URL"
-                  type="url"
-                  placeholder="https://drive.google.com/… or personal site"
-                  value={resumeUrl}
-                  onChange={(e) => setResumeUrl(e.target.value)}
-                />
-                <Input
-                  label="Website / portfolio"
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                />
-                <Input
-                  label="GitHub"
-                  type="url"
-                  value={githubUrl}
-                  onChange={(e) => setGithubUrl(e.target.value)}
-                />
-                <Input
-                  label="LinkedIn"
-                  type="url"
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                />
-                <Input
-                  label="X / Twitter"
-                  type="url"
-                  value={twitterUrl}
-                  onChange={(e) => setTwitterUrl(e.target.value)}
-                />
-              </CardBody>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
+                    Resume & common links
+                  </h2>
+                </CardHeader>
+                <CardBody className="flex flex-col gap-3 pt-0">
+                  <Input
+                    label="Resume / CV URL"
+                    type="url"
+                    placeholder="https://drive.google.com/… or personal site"
+                    value={resumeUrl}
+                    onChange={(e) => setResumeUrl(e.target.value)}
+                  />
+                  <Input
+                    label="Website / portfolio"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                  />
+                  <Input
+                    label="GitHub"
+                    type="url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                  />
+                  <Input
+                    label="LinkedIn"
+                    type="url"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                  />
+                  <Input
+                    label="X / Twitter"
+                    type="url"
+                    value={twitterUrl}
+                    onChange={(e) => setTwitterUrl(e.target.value)}
+                  />
+                </CardBody>
+              </Card>
+
+              <ListEditor
+                title="Custom links"
+                empty="Add Codeforces, LeetCode, Discord, Notion, blog — any label + URL."
+                count={customLinks.length}
+                onAdd={() =>
+                  setCustomLinks((prev) => [
+                    { id: newEntryId(), label: "", url: "" },
+                    ...prev,
+                  ])
+                }
+              >
+                {customLinks.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="space-y-2 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] p-3"
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
+                      <Input
+                        label="Platform / name"
+                        placeholder="Codeforces, Discord, Blog…"
+                        value={item.label}
+                        onChange={(e) =>
+                          setCustomLinks((prev) =>
+                            prev.map((x, i) =>
+                              i === idx ? { ...x, label: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
+                      <Input
+                        label="URL"
+                        type="url"
+                        placeholder="https://"
+                        value={item.url}
+                        onChange={(e) =>
+                          setCustomLinks((prev) =>
+                            prev.map((x, i) =>
+                              i === idx ? { ...x, url: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setCustomLinks((prev) =>
+                          prev.filter((_, i) => i !== idx),
+                        )
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </ListEditor>
+            </>
           ) : null}
 
           {section === "experience" ? (
@@ -778,105 +815,6 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
                 </div>
               ))}
             </ListEditor>
-          ) : null}
-
-          {section === "prefs" ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
-                    Visibility
-                  </h2>
-                </CardHeader>
-                <CardBody className="flex flex-col gap-3 pt-0">
-                  <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-                    Profile visibility
-                    <select
-                      value={visibility}
-                      onChange={(e) =>
-                        setVisibility(
-                          e.target.value as
-                            | "PUBLIC"
-                            | "FOLLOWERS_ONLY"
-                            | "PRIVATE",
-                        )
-                      }
-                      className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
-                    >
-                      <option value="PUBLIC">Public</option>
-                      <option value="FOLLOWERS_ONLY">Followers only</option>
-                      <option value="PRIVATE">Private</option>
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-2 text-[var(--v2-text-sm)]">
-                    <input
-                      type="checkbox"
-                      checked={discoverable}
-                      onChange={(e) => setDiscoverable(e.target.checked)}
-                    />
-                    Show in Explore / discovery
-                  </label>
-                  <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-                    Timezone
-                    <select
-                      value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
-                      className="min-h-9 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
-                    >
-                      {timezones.map((tz) => (
-                        <option key={tz} value={tz}>
-                          {tz}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <h2 className="text-[var(--v2-text-sm)] font-semibold">
-                    Theme
-                  </h2>
-                </CardHeader>
-                <CardBody className="flex gap-2 pt-0">
-                  {(["light", "dark", "system"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTheme(t)}
-                      className={cn(
-                        "min-h-9 flex-1 rounded-[var(--v2-radius-md)] border text-[var(--v2-text-sm)] font-medium capitalize",
-                        theme === t
-                          ? "border-[var(--v2-primary)] bg-[var(--v2-primary-muted)] text-[var(--v2-primary)]"
-                          : "border-[var(--v2-border)] text-[var(--v2-fg-muted)]",
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardBody className="flex flex-col gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => router.push("/dashboard")}
-                  >
-                    Open dashboard
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => void signOut({ callbackUrl: "/" })}
-                  >
-                    Log out
-                  </Button>
-                </CardBody>
-              </Card>
-            </>
           ) : null}
 
           <div className="sticky bottom-4 flex justify-end lg:static">

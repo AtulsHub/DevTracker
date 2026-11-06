@@ -11,7 +11,7 @@ import { BottomSheet } from "@/v2/components/BottomSheet";
 import { EmptyState } from "@/v2/components/EmptyState";
 import { PageHeader } from "@/v2/components/PageHeader";
 import { v2Api, type TeamDto } from "@/v2/lib/api";
-import { fileToAvatarDataUrl } from "@/v2/lib/avatar";
+import { uploadImage } from "@/v2/lib/upload";
 import { cn } from "@/v2/lib/cn";
 
 export function TeamsScreen({
@@ -63,9 +63,9 @@ export function TeamsScreen({
     setUploading(true);
     setError(null);
     try {
-      setAvatarUrl(await fileToAvatarDataUrl(file));
+      setAvatarUrl(await uploadImage(file, "teams"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not read image");
+      setError(e instanceof Error ? e.message : "Could not upload image");
     } finally {
       setUploading(false);
     }

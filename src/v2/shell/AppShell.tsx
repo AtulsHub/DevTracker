@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -17,9 +20,12 @@ export function AppShell({
   userEmail?: string | null;
   userImage?: string | null;
 }) {
-  // Guests get a light marketing chrome — no app sidebar / profile rail.
-  if (!signedIn) {
-    return <GuestShell>{children}</GuestShell>;
+  const pathname = usePathname();
+  // Marketing landing stays chrome-free even when signed in.
+  const showMarketingChrome = !signedIn || pathname === "/landing";
+
+  if (showMarketingChrome) {
+    return <GuestShell signedIn={signedIn}>{children}</GuestShell>;
   }
 
   return (

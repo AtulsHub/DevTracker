@@ -92,9 +92,12 @@ export async function loadExploreUsers() {
       displayName: true,
       avatarUrl: true,
       headline: true,
+      location: true,
+      college: true,
+      skills: true,
       profileVisibility: true,
     },
-    limit: 50,
+    limit: 80,
   });
 
   const result = [];
@@ -102,23 +105,31 @@ export async function loadExploreUsers() {
     if (!u.username) continue;
     const accounts = await db.query.platformAccounts.findMany({
       where: eq(platformAccounts.userId, u.id),
-      columns: { platform: true },
+      columns: { platform: true, currentRating: true },
     });
     const [solved] = await db
       .select({ total: count() })
       .from(solves)
       .where(eq(solves.userId, u.id));
+    const maxRating = accounts.reduce(
+      (best, a) => Math.max(best, a.currentRating ?? 0),
+      0,
+    );
     result.push({
       username: u.username,
       displayName: u.displayName,
       avatarUrl: u.avatarUrl,
       headline: u.headline,
+      location: u.location,
+      college: u.college,
+      skills: u.skills,
       profileVisibility: u.profileVisibility,
       platforms: accounts.map((a) => a.platform),
       totalSolved: Number(solved?.total ?? 0),
+      maxRating: maxRating || null,
     });
   }
-  return result;
+  return result.sort((a, b) => b.totalSolved - a.totalSolved);
 }
 
 export async function loadPublicProfile(
@@ -143,11 +154,11 @@ export async function loadPublicProfile(
       linkedinUrl: true,
       twitterUrl: true,
       resumeUrl: true,
-      openToWork: true,
       education: true,
       experience: true,
       projects: true,
       certifications: true,
+      customLinks: true,
       profileVisibility: true,
     },
   });
@@ -187,11 +198,11 @@ export async function loadPublicProfile(
     linkedinUrl: owner.linkedinUrl,
     twitterUrl: owner.twitterUrl,
     resumeUrl: owner.resumeUrl,
-    openToWork: owner.openToWork,
     education: owner.education ?? [],
     experience: owner.experience ?? [],
     projects: owner.projects ?? [],
     certifications: owner.certifications ?? [],
+    customLinks: owner.customLinks ?? [],
     platforms,
     recent,
     totalSolved,

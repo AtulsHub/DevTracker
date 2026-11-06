@@ -1,13 +1,144 @@
 /**
- * Landing / public marketing — restrained accents only.
- * Prefer component tokens over decorative layers.
+ * Marketing landing — follows app theme (html[data-theme]).
+ * Surfaces/text come from --v2-* so light/dark stay consistent.
+ * Accent stays lime for marketing energy without fighting chrome.
  */
 
-.profile-cover {
-  background: linear-gradient(
-    125deg,
-    color-mix(in srgb, var(--v2-primary) 40%, var(--v2-bg-muted)) 0%,
-    color-mix(in srgb, var(--v2-accent) 22%, var(--v2-bg-elevated)) 55%,
-    var(--v2-bg-muted) 100%
-  );
+.landing {
+  --land-bg: var(--v2-bg);
+  --land-bg-alt: var(--v2-bg-muted);
+  --land-fg: var(--v2-fg);
+  --land-muted: var(--v2-fg-muted);
+  --land-line: var(--v2-border);
+  --land-accent: #a3db00;
+  --land-accent-fg: #10180a;
+  --land-band: #111814;
+  --land-band-fg: #f3f6f1;
+  --land-band-muted: color-mix(in srgb, var(--land-band-fg) 62%, transparent);
+  --land-heat: var(--land-accent);
+  --land-display: var(--font-landing-display), "Avenir Next", sans-serif;
+  --land-body: var(--font-landing-body), var(--v2-font-sans);
+  color: var(--land-fg);
+  background: var(--land-bg);
+  font-family: var(--land-body);
+}
+
+[data-theme="dark"] .landing {
+  --land-accent: #c8f542;
+  --land-accent-fg: #0d1408;
+  --land-band: #0e1310;
+  --land-band-fg: #eef2ec;
+  --land-band-muted: color-mix(in srgb, var(--land-band-fg) 60%, transparent);
+  --land-heat: #c8f542;
+}
+
+[data-theme="light"] .landing {
+  --land-accent: #8fc400;
+  --land-accent-fg: #10180a;
+  --land-band: #121a16;
+  --land-band-fg: #f4f7f2;
+  --land-band-muted: color-mix(in srgb, var(--land-band-fg) 64%, transparent);
+  --land-heat: #9ed100;
+}
+
+.landing a {
+  color: inherit;
+}
+
+.landing-display {
+  font-family: var(--land-display);
+}
+
+/* --- Motions --- */
+
+@keyframes land-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes land-heat {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes land-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes land-scan {
+  0% {
+    transform: translateY(-20%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+.landing-rise {
+  animation: land-rise 0.85s var(--v2-ease) both;
+}
+
+.landing-rise-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.landing-rise-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.landing-rise-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.landing-heat-cell {
+  animation: land-heat 3.6s ease-in-out infinite;
+}
+
+.landing-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: land-marquee 28s linear infinite;
+}
+
+.landing-scan {
+  animation: land-scan 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-rise,
+  .landing-heat-cell,
+  .landing-marquee-track,
+  .landing-scan {
+    animation: none !important;
+  }
+}
+
+/* Guest chrome matches themed surfaces */
+html:has(.landing-hero) .guest-topbar {
+  border-color: color-mix(in srgb, var(--v2-border) 80%, transparent);
+  background: color-mix(in srgb, var(--v2-bg) 82%, transparent);
 }

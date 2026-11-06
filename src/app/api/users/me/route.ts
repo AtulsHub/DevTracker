@@ -58,6 +58,14 @@ const certificationSchema = z.array(
   }),
 );
 
+const customLinkSchema = z.array(
+  z.object({
+    id: z.string().min(1).max(64),
+    label: z.string().min(1).max(80),
+    url: z.string().url().max(500),
+  }),
+);
+
 const updateProfileSchema = z
   .object({
     displayName: z.union([z.string().min(1).max(80), z.null()]).optional(),
@@ -77,7 +85,20 @@ const updateProfileSchema = z
     experience: experienceSchema.max(30).optional(),
     projects: projectSchema.max(30).optional(),
     certifications: certificationSchema.max(30).optional(),
-    avatarUrl: z.union([z.string().max(400_000), z.null()]).optional(),
+    customLinks: customLinkSchema.max(20).optional(),
+    // Cloudinary HTTPS URLs (legacy base64 data URLs still accepted for old rows)
+    avatarUrl: z
+      .union([
+        z.string().url().max(500),
+        z
+          .string()
+          .regex(/^data:image\/(jpeg|jpg|png|webp);base64,/i)
+          .max(400_000),
+        z.literal(""),
+        z.null(),
+      ])
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? null : v)),
     timezone: z.string().min(1).max(60).optional(),
     profileVisibility: z
       .enum(["PUBLIC", "FOLLOWERS_ONLY", "PRIVATE"])
@@ -109,6 +130,7 @@ export const PROFILE_COLUMNS = {
   experience: users.experience,
   projects: users.projects,
   certifications: users.certifications,
+  customLinks: users.customLinks,
   timezone: users.timezone,
   profileVisibility: users.profileVisibility,
   discoverable: users.discoverable,

@@ -14,7 +14,14 @@ const createTeamSchema = z.object({
   description: z.string().max(2000).optional(),
   visibility: z.enum(["PUBLIC", "PRIVATE", "SECRET"]).default("PUBLIC"),
   memberVisibilityPolicy: z.enum(["EVERYONE", "FOLLOWERS", "TEAM", "ME"]).default("TEAM"),
-  avatarUrl: z.string().max(400_000).optional().nullable(),
+  avatarUrl: z
+    .union([
+      z.string().url().max(500),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
 });
 
 export async function POST(req: Request) {

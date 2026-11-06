@@ -45,6 +45,11 @@ const envSchema = z.object({
   // ── Observability ───────────────────────────────────────────────────────────
   SENTRY_DSN: z.string().optional(),
 
+  // ── Cloudinary (image uploads) ──────────────────────────────────────────────
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+
   // ── App ─────────────────────────────────────────────────────────────────────
   APP_URL: z.string().url().default("http://localhost:3000"),
   SYNC_USER_AGENT: z

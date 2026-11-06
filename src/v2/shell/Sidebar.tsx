@@ -11,7 +11,7 @@ import {
 import { cn } from "@/v2/lib/cn";
 import { useTheme } from "./ThemeProvider";
 import { UserAccountMenu } from "./UserAccountMenu";
-import { Moon, Sun, Monitor } from "lucide-react";
+import { LayoutTemplate, Moon, Sun, Monitor } from "lucide-react";
 
 function NavLink({
   item,
@@ -185,6 +185,13 @@ export function Sidebar({
         </nav>
 
         <div className="border-t border-[var(--v2-border)] p-3">
+          <Link
+            href="/landing"
+            className="mb-2 flex w-full items-center gap-2.5 rounded-[var(--v2-radius-md)] px-2 py-2 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)] no-underline transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
+          >
+            <LayoutTemplate className="size-[18px] shrink-0" aria-hidden />
+            Landing page
+          </Link>
           <ThemeToggle />
           {signedIn ? (
             <UserAccountMenu

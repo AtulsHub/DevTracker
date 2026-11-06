@@ -45,11 +45,11 @@ export default async function PublicUserPage({ params }: Props) {
       linkedinUrl={data.linkedinUrl}
       twitterUrl={data.twitterUrl}
       resumeUrl={data.resumeUrl}
-      openToWork={data.openToWork}
       education={data.education}
       experience={data.experience}
       projects={data.projects}
       certifications={data.certifications}
+      customLinks={data.customLinks}
       platforms={data.platforms}
       totalSolved={data.totalSolved}
       isOwner={data.isOwner}

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
@@ -5,32 +6,11 @@ import { users } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileSettingsScreen } from "@/v2/screens/ProfileSettingsScreen";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Edit profile",
+};
 
-const PROFILE_SELECT = {
-  username: true,
-  displayName: true,
-  avatarUrl: true,
-  bio: true,
-  headline: true,
-  location: true,
-  age: true,
-  college: true,
-  skills: true,
-  websiteUrl: true,
-  githubUrl: true,
-  linkedinUrl: true,
-  twitterUrl: true,
-  resumeUrl: true,
-  openToWork: true,
-  education: true,
-  experience: true,
-  projects: true,
-  certifications: true,
-  profileVisibility: true,
-  timezone: true,
-  discoverable: true,
-} as const;
+export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -38,7 +18,27 @@ export default async function ProfilePage() {
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
-    columns: PROFILE_SELECT,
+    columns: {
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      bio: true,
+      headline: true,
+      location: true,
+      age: true,
+      college: true,
+      skills: true,
+      websiteUrl: true,
+      githubUrl: true,
+      linkedinUrl: true,
+      twitterUrl: true,
+      resumeUrl: true,
+      education: true,
+      experience: true,
+      projects: true,
+      certifications: true,
+      customLinks: true,
+    },
   });
 
   if (!user?.username) redirect("/onboarding");
@@ -60,14 +60,11 @@ export default async function ProfilePage() {
         linkedinUrl: user.linkedinUrl,
         twitterUrl: user.twitterUrl,
         resumeUrl: user.resumeUrl,
-        openToWork: user.openToWork,
         education: user.education ?? [],
         experience: user.experience ?? [],
         projects: user.projects ?? [],
         certifications: user.certifications ?? [],
-        profileVisibility: user.profileVisibility,
-        timezone: user.timezone,
-        discoverable: user.discoverable,
+        customLinks: user.customLinks ?? [],
       }}
     />
   );

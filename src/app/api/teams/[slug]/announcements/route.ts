@@ -16,7 +16,14 @@ import {
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(5000),
-  imageUrl: z.string().max(400_000).optional().nullable(),
+  imageUrl: z
+    .union([
+      z.string().url().max(500),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
   linkUrl: z
     .union([z.string().url().max(500), z.literal(""), z.null()])
     .optional(),

@@ -34,6 +34,14 @@ export type CertificationEntry = {
   url?: string;
 };
 
+/** User-defined profile links (Codeforces blog, Notion, Discord, etc.) */
+export type CustomLinkEntry = {
+  id: string;
+  /** Display label / platform name */
+  label: string;
+  url: string;
+};
+
 export function newEntryId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

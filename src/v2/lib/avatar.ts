@@ -1,4 +1,10 @@
-/** Compress an image file to a JPEG data URL suitable for avatar storage. */
+/**
+ * @deprecated Prefer `uploadImage` from `@/v2/lib/upload` (Cloudinary).
+ * Kept for any local preview helpers.
+ */
+export { uploadImage as fileToCloudinary } from "@/v2/lib/upload";
+
+/** Compress an image file to a JPEG data URL (legacy local preview only). */
 export async function fileToAvatarDataUrl(
   file: File,
   maxEdge = 512,

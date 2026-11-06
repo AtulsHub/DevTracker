@@ -34,7 +34,7 @@ import {
   type TeamActivityDto,
   type TeamMemberDto,
 } from "@/v2/lib/api";
-import { fileToAvatarDataUrl } from "@/v2/lib/avatar";
+import { uploadImage, type UploadFolder } from "@/v2/lib/upload";
 import { LINKABLE_PLATFORMS, platformLabel } from "@/v2/lib/platforms";
 import {
   TARGET_TYPE_SECTIONS,
@@ -447,14 +447,15 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   async function onPickImage(
     file: File | null,
     setter: (url: string | null) => void,
+    folder: UploadFolder = "teams",
   ) {
     if (!file) return;
     setUploading(true);
     setMsg(null);
     try {
-      setter(await fileToAvatarDataUrl(file, 1024, 0.8));
+      setter(await uploadImage(file, folder));
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Could not read image");
+      setMsg(e instanceof Error ? e.message : "Could not upload image");
     } finally {
       setUploading(false);
     }
@@ -1644,6 +1645,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                 void onPickImage(
                   e.target.files?.[0] ?? null,
                   setAnnounceImage,
+                  "announcements",
                 )
               }
             />

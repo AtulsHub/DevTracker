@@ -5,7 +5,6 @@ import {
   Users,
   User,
   LayoutDashboard,
-  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,7 +44,7 @@ export const PRIMARY_NAV: NavItem[] = [
     href: "/profile",
     label: "Profile",
     icon: User,
-    match: ["/profile", "/settings"],
+    match: ["/profile"],
     auth: "required",
   },
 ];
@@ -83,28 +82,15 @@ export const WORKSPACE_NAV: NavItem[] = [
   },
 ];
 
-/** Desktop sidebar — management section */
-export const MANAGEMENT_NAV: NavItem[] = [
-  {
-    href: "/profile",
-    label: "Profile",
-    icon: User,
-    match: ["/profile"],
-    auth: "required",
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings,
-    match: ["/settings"],
-    auth: "required",
-  },
-];
+/**
+ * Profile + Settings live under the account menu (sidebar footer),
+ * not as duplicate sidebar links.
+ */
+export const MANAGEMENT_NAV: NavItem[] = [];
 
-/** @deprecated Prefer WORKSPACE_NAV + MANAGEMENT_NAV on desktop */
+/** @deprecated Prefer WORKSPACE_NAV on desktop */
 export const DESKTOP_EXTRA: NavItem[] = [
   ...WORKSPACE_NAV.filter((i) => i.href === "/dashboard"),
-  ...MANAGEMENT_NAV.filter((i) => i.href === "/settings"),
 ];
 
 export function isActive(pathname: string, item: NavItem) {

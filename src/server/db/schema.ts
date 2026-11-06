@@ -215,6 +215,17 @@ export const users = pgTable("users", {
     >()
     .notNull()
     .default(sql`'[]'::jsonb`),
+  /** Extra profile links with custom labels (beyond built-in social fields) */
+  customLinks: jsonb("custom_links")
+    .$type<
+      Array<{
+        id: string;
+        label: string;
+        url: string;
+      }>
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   timezone: varchar("timezone", { length: 60 }).notNull().default("UTC"),
   profileVisibility: profileVisibilityEnum("profile_visibility")
     .notNull()
