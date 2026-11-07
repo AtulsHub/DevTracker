@@ -72,10 +72,10 @@ export const PLATFORMS: Record<PlatformId, PlatformMeta> = {
 /** Shared alias for chips, badges, charts, heatmap tints. */
 export const PLATFORM_META = PLATFORMS;
 
+/** Practice / contest platforms users can link. Hiring-only sites stay out. */
 export const LINKABLE_PLATFORMS: PlatformId[] = [
   "codeforces",
   "leetcode",
-  "hackerrank",
   "atcoder",
   "codechef",
 ];

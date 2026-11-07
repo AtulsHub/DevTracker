@@ -10,6 +10,7 @@ import { getAdapter } from "@/server/platforms";
 import { z } from "zod";
 import { platformEnum } from "@/server/db/schema";
 import type { PlatformId } from "@/server/platforms/types";
+import { LINKABLE_PLATFORMS } from "@/v2/design/platforms";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const linkSchema = z.object({
@@ -46,6 +47,18 @@ export async function POST(
     // Validate platform enum
     if (!platformEnum.enumValues.includes(platform as typeof platformEnum.enumValues[number])) {
       return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
+    }
+
+    if (!(LINKABLE_PLATFORMS as readonly string[]).includes(platform)) {
+      return NextResponse.json(
+        {
+          error:
+            platform === "hackerrank"
+              ? "HackerRank is hiring-focused and isn’t supported for practice tracking."
+              : "This platform can’t be linked yet.",
+        },
+        { status: 400 },
+      );
     }
 
     const body = await req.json();

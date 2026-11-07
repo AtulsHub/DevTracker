@@ -1,6 +1,6 @@
 # DevTrack
 
-Track competitive programming / DSA progress across **Codeforces, LeetCode, HackerRank, AtCoder, and CodeChef**. Teams, leaderboards, and admin-set targets. Mobile-first UI with a bottom tab bar.
+Track competitive programming / DSA progress across **Codeforces, LeetCode, AtCoder, and CodeChef**. Teams, leaderboards, and admin-set targets. Mobile-first UI with a bottom tab bar.
 
 **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · Drizzle · Neon Postgres · Auth.js · Vercel Cron · pnpm
 

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s · DevTrack",
   },
   description:
-    "Track DSA progress across Codeforces, LeetCode, HackerRank, AtCoder, and CodeChef. Contests, teams, and public profiles.",
+    "Track DSA progress across Codeforces, LeetCode, AtCoder, and CodeChef. Contests, teams, and public profiles.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

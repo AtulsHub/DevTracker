@@ -77,8 +77,14 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
     }
   }
 
+  const practicePlatforms = useMemo(
+    () => new Set<string>(LINKABLE_PLATFORMS),
+    [],
+  );
+
   const filtered = useMemo(() => {
     return contests
+      .filter((c) => practicePlatforms.has(c.platform))
       .filter((c) =>
         platformFilter === "all" ? true : c.platform === platformFilter,
       )
@@ -86,7 +92,7 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
         (a, b) =>
           new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
       );
-  }, [contests, platformFilter]);
+  }, [contests, platformFilter, practicePlatforms]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, ContestDto[]>();

@@ -12,6 +12,9 @@ type Platform = (typeof platformEnum.enumValues)[number];
 
 const SUPPORTED = new Set<string>(platformEnum.enumValues);
 
+/** Hiring / assessment sites — keep out of practice contest feeds. */
+const EXCLUDED_PRACTICE = new Set<string>(["hackerrank"]);
+
 export type AggregatedContest = NormalizedContest & { platform: Platform };
 
 const UA =
@@ -45,8 +48,7 @@ function mapPlatformKey(raw: string): Platform | null {
     ac: "atcoder",
     codechef: "codechef",
     cc: "codechef",
-    hackerrank: "hackerrank",
-    hr: "hackerrank",
+    // HackerRank is hiring-oriented — do not ingest as practice contests
     hackerearth: "hackerearth",
     he: "hackerearth",
     cses: "cses",
@@ -55,6 +57,7 @@ function mapPlatformKey(raw: string): Platform | null {
     "open.kattis.com": "kattis",
   };
   const mapped = aliases[key] ?? (SUPPORTED.has(key) ? (key as Platform) : null);
+  if (!mapped || EXCLUDED_PRACTICE.has(mapped)) return null;
   return mapped;
 }
 
@@ -175,57 +178,6 @@ export async function fetchFromClist(): Promise<AggregatedContest[]> {
 }
 
 /**
- * Lightweight HTML scrape for HackerRank public contests page.
- * Used when aggregators miss HR events.
- */
-export async function scrapeHackerRankContests(): Promise<AggregatedContest[]> {
-  try {
-    const res = await fetch("https://www.hackerrank.com/domains/tutorials/contests", {
-      headers: {
-        "User-Agent": UA,
-        Accept: "text/html",
-      },
-    });
-    if (!res.ok) return [];
-    const html = await res.text();
-
-    // Prefer embedded JSON blobs when present
-    const jsonMatch = html.match(
-      /<script[^>]*id="initialData"[^>]*>([\s\S]*?)<\/script>/i,
-    );
-    if (jsonMatch?.[1]) {
-      try {
-        const data = JSON.parse(jsonMatch[1]) as unknown;
-        // Structure varies; soft-fail if unexpected
-        void data;
-      } catch {
-        /* ignore */
-      }
-    }
-
-    // Fallback: parse contest links + nearby ISO dates from meta/calendar markup
-    const out: AggregatedContest[] = [];
-    const linkRe =
-      /href="(https?:\/\/www\.hackerrank\.com\/contests\/([^"?#]+))"[^>]*>([^<]{3,120})</gi;
-    const seen = new Set<string>();
-    let m: RegExpExecArray | null;
-    while ((m = linkRe.exec(html)) !== null) {
-      const url = m[1]!;
-      const slug = m[2]!;
-      const name = m[3]!.replace(/\s+/g, " ").trim();
-      if (seen.has(slug) || /login|signup|challenge/i.test(slug)) continue;
-      seen.add(slug);
-      // Without a reliable start time from HTML, skip — aggregator is primary for HR
-      void name;
-      void url;
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
-
-/**
  * Scrape CodeChef contest list HTML as a soft fallback.
  * Prefer ContestRadar / CodeChef JSON API when available.
  */
@@ -336,7 +288,6 @@ export async function fetchAggregatedUpcomingContests(): Promise<{
     { name: "contestradar", run: fetchFromContestRadar },
     { name: "clist", run: fetchFromClist },
     { name: "codechef-api", run: scrapeCodeChefContests },
-    { name: "hackerrank-scrape", run: scrapeHackerRankContests },
   ];
 
   await Promise.all(

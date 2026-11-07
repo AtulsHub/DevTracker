@@ -231,24 +231,7 @@ export const hackerrankAdapter: PlatformAdapter = {
   },
 
   async fetchUpcomingContests(): Promise<NormalizedContest[]> {
-    // Prefer ContestRadar aggregation in refreshContestsFromAdapters.
-    // Soft fallback: scrape HR contest listing links (start times often missing).
-    try {
-      const { scrapeHackerRankContests } = await import(
-        "@/server/services/contest-aggregator"
-      );
-      const rows = await scrapeHackerRankContests();
-      return rows.map((c) => ({
-        externalId: c.externalId,
-        name: c.name,
-        url: c.url,
-        startsAt: c.startsAt,
-        durationSeconds: c.durationSeconds,
-        type: c.type,
-        phase: c.phase,
-      }));
-    } catch {
-      return [];
-    }
+    // Hiring / assessment platform — not tracked as practice contests.
+    return [];
   },
 };

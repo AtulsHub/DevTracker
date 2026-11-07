@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "DevTrack — DSA progress across every platform",
   description:
-    "Track Codeforces, LeetCode, HackerRank, AtCoder, and CodeChef in one place. Contests, public profiles, and teams.",
+    "Track Codeforces, LeetCode, AtCoder, and CodeChef in one place. Contests, public profiles, and teams.",
 };
 
 export const dynamic = "force-dynamic";
