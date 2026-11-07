@@ -4,7 +4,7 @@ import { HomeScreen } from "@/v2/screens/HomeScreen";
 import { LandingScreen } from "@/v2/screens/LandingScreen";
 import {
   loadDashboardData,
-  loadExploreUsers,
+  loadFeaturedUsers,
   loadUpcomingContests,
 } from "@/v2/lib/queries";
 
@@ -19,9 +19,11 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const session = await auth();
   const signedIn = !!session?.user?.id;
+
+  // Lightweight parallel loads — no contest aggregator refresh on this path.
   const [contests, featured] = await Promise.all([
     loadUpcomingContests(21),
-    loadExploreUsers(),
+    loadFeaturedUsers(8),
   ]);
   const serialized = contests.map((c) => ({
     ...c,

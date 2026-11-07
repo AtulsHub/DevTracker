@@ -101,11 +101,6 @@ export async function getOverviewTargets(userId: string) {
   });
 }
 
-/** @deprecated Prefer getOverviewTargets for personal dashboards */
-export async function getUserTargets(userId: string) {
-  return getOverviewTargets(userId);
-}
-
 export async function getTeamTargets(teamId: string, userId: string) {
   const teamTargets = await db.query.targets.findMany({
     where: eq(targets.teamId, teamId),

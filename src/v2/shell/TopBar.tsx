@@ -23,7 +23,6 @@ function titleFor(pathname: string) {
   if (pathname.startsWith("/sign-")) return "Account";
   if (pathname.startsWith("/u/")) return "Profile";
   if (pathname.startsWith("/onboarding")) return "Welcome";
-  if (pathname.startsWith("/activity")) return "Activity";
   return "DevTrack";
 }
 

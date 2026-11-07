@@ -49,10 +49,14 @@ export function NotificationBell() {
     }
   }, []);
 
+  // Fetch once on mount + when tab focuses. No 60s polling (was wasting requests).
   useEffect(() => {
     void refresh();
-    const id = window.setInterval(() => void refresh(), 60_000);
-    return () => window.clearInterval(id);
+    function onFocus() {
+      void refresh();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
   useEffect(() => {

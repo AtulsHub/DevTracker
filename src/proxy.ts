@@ -12,7 +12,6 @@ export default auth((req) => {
     "/settings",
     "/profile",
     "/onboarding",
-    "/activity",
   ];
 
   const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));

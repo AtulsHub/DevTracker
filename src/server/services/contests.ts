@@ -152,23 +152,6 @@ export async function getContestById(id: string): Promise<NormalizedContest | nu
 }
 
 /**
- * Get contests grouped by platform.
- */
-export async function getContestsByPlatform(): Promise<Record<string, NormalizedContest[]>> {
-  const allContests = await getContests({ limit: 200 });
-  const grouped: Record<string, NormalizedContest[]> = {};
-
-  for (const contest of allContests) {
-    if (!grouped[contest.platform]) {
-      grouped[contest.platform] = [];
-    }
-    grouped[contest.platform].push(contest);
-  }
-
-  return grouped;
-}
-
-/**
  * Upsert contests from platform adapter data.
  * Used by the refresh-contests cron job.
  */

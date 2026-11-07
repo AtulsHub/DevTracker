@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LandingScreen } from "@/v2/screens/LandingScreen";
-import { loadExploreUsers, loadUpcomingContests } from "@/v2/lib/queries";
+import { loadFeaturedUsers, loadUpcomingContests } from "@/v2/lib/queries";
 
 export const metadata: Metadata = {
   title: "DevTrack — DSA progress across every platform",
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function LandingPage() {
   const [contests, featured] = await Promise.all([
     loadUpcomingContests(21),
-    loadExploreUsers(),
+    loadFeaturedUsers(8),
   ]);
   const serialized = contests.map((c) => ({
     ...c,

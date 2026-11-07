@@ -3,7 +3,7 @@
  */
 import { db } from "@/server/db";
 import { users, platformAccounts, solves } from "@/server/db/schema";
-import { eq, count, sql } from "drizzle-orm";
+import { eq, count, desc, inArray } from "drizzle-orm";
 import {
   countUpcomingContests,
   getUpcomingContests,
@@ -21,39 +21,25 @@ import {
 } from "@/server/services/activity";
 import { getOverviewTargets } from "@/server/services/targets";
 import { todayLocalDateStr } from "@/lib/date";
-import { contests } from "@/server/db/schema";
 
 export { getAllSubmissions };
 
 /**
- * Ensure the DB has upcoming contests. Refreshes from aggregators/adapters when
- * there are zero upcoming rows (not only when the table is completely empty).
+ * Read-only contest load for pages. Do NOT refresh aggregators on the request
+ * path — that made `/` take multi-seconds. Cron `/api/cron/refresh-contests`
+ * owns refreshes.
  */
+export async function loadUpcomingContests(days = 30) {
+  return getUpcomingContests(undefined, days).catch(() => []);
+}
+
+/** Manual/scripts only — pages should not call this. */
 export async function ensureContestsLoaded() {
   const upcoming = await countUpcomingContests(60).catch(() => 0);
   if (upcoming > 0) return;
-
-  const [{ c }] = await db
-    .select({ c: sql<number>`count(*)::int` })
-    .from(contests);
-  // Always try a refresh when nothing upcoming is visible.
-  if (Number(c) === 0 || upcoming === 0) {
-    await refreshContestsFromAdapters().catch((err) => {
-      console.error("[ensureContestsLoaded] refresh failed:", err);
-      return null;
-    });
-  }
-}
-
-export async function loadUpcomingContests(days = 30) {
-  await ensureContestsLoaded();
-  let rows = await getUpcomingContests(undefined, days).catch(() => []);
-  // One retry after a forced refresh if still empty (covers stale FAILED syncs).
-  if (rows.length === 0) {
-    await refreshContestsFromAdapters().catch(() => null);
-    rows = await getUpcomingContests(undefined, days).catch(() => []);
-  }
-  return rows;
+  await refreshContestsFromAdapters().catch((err) => {
+    console.error("[ensureContestsLoaded] refresh failed:", err);
+  });
 }
 
 export async function loadDashboardData(userId: string) {
@@ -94,7 +80,26 @@ export async function loadDashboardData(userId: string) {
   };
 }
 
-export async function loadExploreUsers() {
+/**
+ * Lightweight featured list for landing/home (no N+1).
+ * Explore page still uses loadExploreUsers for richer cards.
+ */
+export async function loadFeaturedUsers(limit = 8) {
+  const publicUsers = await db
+    .select({
+      username: users.username,
+      displayName: users.displayName,
+      headline: users.headline,
+    })
+    .from(users)
+    .where(eq(users.profileVisibility, "PUBLIC"))
+    .orderBy(desc(users.createdAt))
+    .limit(Math.min(limit, 24));
+
+  return publicUsers.filter((u) => !!u.username);
+}
+
+export async function loadExploreUsers(limit = 24) {
   const publicUsers = await db.query.users.findMany({
     where: eq(users.profileVisibility, "PUBLIC"),
     columns: {
@@ -108,21 +113,46 @@ export async function loadExploreUsers() {
       skills: true,
       profileVisibility: true,
     },
-    limit: 80,
+    limit: Math.min(limit, 48),
   });
+
+  if (publicUsers.length === 0) return [];
+
+  const ids = publicUsers.map((u) => u.id);
+  const [accounts, solvedRows] = await Promise.all([
+    db.query.platformAccounts.findMany({
+      where: inArray(platformAccounts.userId, ids),
+      columns: {
+        userId: true,
+        platform: true,
+        currentRating: true,
+      },
+    }),
+    db
+      .select({
+        userId: solves.userId,
+        total: count(),
+      })
+      .from(solves)
+      .where(inArray(solves.userId, ids))
+      .groupBy(solves.userId),
+  ]);
+
+  const accountsByUser = new Map<string, typeof accounts>();
+  for (const a of accounts) {
+    const list = accountsByUser.get(a.userId) ?? [];
+    list.push(a);
+    accountsByUser.set(a.userId, list);
+  }
+  const solvedByUser = new Map(
+    solvedRows.map((r) => [r.userId, Number(r.total ?? 0)]),
+  );
 
   const result = [];
   for (const u of publicUsers) {
     if (!u.username) continue;
-    const accounts = await db.query.platformAccounts.findMany({
-      where: eq(platformAccounts.userId, u.id),
-      columns: { platform: true, currentRating: true },
-    });
-    const [solved] = await db
-      .select({ total: count() })
-      .from(solves)
-      .where(eq(solves.userId, u.id));
-    const maxRating = accounts.reduce(
+    const userAccounts = accountsByUser.get(u.id) ?? [];
+    const maxRating = userAccounts.reduce(
       (best, a) => Math.max(best, a.currentRating ?? 0),
       0,
     );
@@ -135,8 +165,8 @@ export async function loadExploreUsers() {
       college: u.college,
       skills: u.skills,
       profileVisibility: u.profileVisibility,
-      platforms: accounts.map((a) => a.platform),
-      totalSolved: Number(solved?.total ?? 0),
+      platforms: userAccounts.map((a) => a.platform),
+      totalSolved: solvedByUser.get(u.id) ?? 0,
       maxRating: maxRating || null,
     });
   }
