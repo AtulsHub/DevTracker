@@ -11,6 +11,7 @@ import {
 } from "./nav";
 import { siteHomeHref } from "@/v2/lib/site";
 import { cn } from "@/v2/lib/cn";
+import { NotificationBell } from "./NotificationBell";
 
 function titleFor(pathname: string) {
   for (const item of [...WORKSPACE_NAV, ...MANAGEMENT_NAV, ...PRIMARY_NAV]) {
@@ -70,6 +71,7 @@ export function TopBar({ signedIn }: { signedIn: boolean }) {
         >
           <Search className="size-4" />
         </Link>
+        {signedIn ? <NotificationBell /> : null}
         {!signedIn ? (
           <Link
             href="/sign-in"

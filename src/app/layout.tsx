@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from "@/server/auth";
 import { AppShell } from "@/v2/shell/AppShell";
+import { FeedbackProviders } from "@/v2/feedback/FeedbackProviders";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -60,14 +61,16 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppShell
-          signedIn={signedIn}
-          userName={session?.user?.name}
-          userEmail={session?.user?.email}
-          userImage={session?.user?.image}
-        >
-          {children}
-        </AppShell>
+        <FeedbackProviders>
+          <AppShell
+            signedIn={signedIn}
+            userName={session?.user?.name}
+            userEmail={session?.user?.email}
+            userImage={session?.user?.image}
+          >
+            {children}
+          </AppShell>
+        </FeedbackProviders>
       </body>
     </html>
   );

@@ -27,16 +27,30 @@ export function SignInScreen() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
+  const verified = params.get("verified") === "1";
+  const urlError = params.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(
+    verified
+      ? "Email verified — you can sign in now."
+      : urlError === "verification_expired"
+        ? "Verification link expired. Resend a new one below."
+        : urlError === "verification_invalid" || urlError === "missing_verification"
+          ? "That verification link is invalid."
+          : null,
+  );
+  const [needsVerify, setNeedsVerify] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setNeedsVerify(false);
     const res = await signIn("credentials", {
       email,
       password,
@@ -44,11 +58,37 @@ export function SignInScreen() {
     });
     setLoading(false);
     if (res?.error) {
+      const code = (res as { code?: string }).code ?? res.error;
+      if (
+        code === "email_not_verified" ||
+        String(res.error).toLowerCase().includes("email_not_verified")
+      ) {
+        setNeedsVerify(true);
+        setError("Verify your email before signing in.");
+        return;
+      }
       setError("Invalid email or password");
       return;
     }
     router.push(callbackUrl);
     router.refresh();
+  }
+
+  async function resend() {
+    if (!email) {
+      setError("Enter your email first");
+      return;
+    }
+    setResending(true);
+    try {
+      await v2Api.resendVerification(email);
+      setInfo("If an unverified account exists, a new link is on its way.");
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend");
+    } finally {
+      setResending(false);
+    }
   }
 
   return (
@@ -57,6 +97,11 @@ export function SignInScreen() {
       title="Welcome back"
       subtitle="Pick up your streak, contests, and team pulse where you left them."
     >
+      {info ? (
+        <p className="mb-4 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-primary-muted)] px-3 py-2.5 text-[var(--v2-text-sm)] text-[var(--auth-fg)]">
+          {info}
+        </p>
+      ) : null}
       <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-4">
         <AuthField
           label="Email"
@@ -90,6 +135,24 @@ export function SignInScreen() {
             </button>
           }
         />
+        {needsVerify ? (
+          <button
+            type="button"
+            disabled={resending}
+            onClick={() => void resend()}
+            className="text-left text-[var(--v2-text-sm)] font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            {resending ? "Sending…" : "Resend verification email"}
+          </button>
+        ) : null}
+        <div className="flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-[var(--v2-text-sm)] font-medium text-[var(--auth-muted)] no-underline hover:text-[var(--auth-accent)]"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <button
           type="submit"
           disabled={loading}
@@ -114,36 +177,60 @@ export function SignInScreen() {
 }
 
 export function SignUpScreen() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingVerify, setPendingVerify] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      await v2Api.register({ username, email, password });
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      if (res?.error) {
-        router.push("/sign-in");
-        return;
+      const res = await v2Api.register({ username, email, password });
+      if (res.autoVerified || res.needsVerification === false) {
+        const signed = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+        if (!signed?.error) {
+          window.location.href = "/dashboard";
+          return;
+        }
       }
-      router.push("/dashboard");
-      router.refresh();
+      setPendingVerify(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (pendingVerify) {
+    return (
+      <AuthShell
+        mode="signup"
+        title="Check your inbox"
+        subtitle="We sent a verification link. Confirm your email, then sign in — Google/GitHub sign-up skips this."
+      >
+        <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--auth-panel)] px-4 py-4 text-[var(--v2-text-sm)] leading-relaxed text-[var(--auth-muted)]">
+          Sent to <span className="font-medium text-[var(--auth-fg)]">{email}</span>.
+          The link expires in 24 hours.
+        </div>
+        <Link
+          href="/sign-in"
+          className="auth-cta mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 text-[0.95rem] font-semibold no-underline"
+        >
+          Go to sign in
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+        <OAuthButtons callbackUrl="/dashboard" />
+      </AuthShell>
+    );
   }
 
   return (

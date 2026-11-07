@@ -43,6 +43,8 @@ import {
   type TargetTypeId,
 } from "@/v2/lib/targetTypes";
 import { cn } from "@/v2/lib/cn";
+import { useToast } from "@/v2/feedback/ToastProvider";
+import { useConfirm } from "@/v2/feedback/useConfirm";
 
 type ActivityFilter =
   | "all"
@@ -81,6 +83,8 @@ type TeamInfo = {
 
 export function TeamDetailScreen({ slug }: { slug: string }) {
   const router = useRouter();
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [tab, setTab] = useState<Tab>("overview");
   const [team, setTeam] = useState<TeamInfo | null>(null);
   const [members, setMembers] = useState<TeamMemberDto[]>([]);
@@ -290,6 +294,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
     const url = `${window.location.origin}/teams/join?code=${team.inviteCode}`;
     try {
       await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied");
       setMsg("Invite link copied");
     } catch {
       setMsg(url);
@@ -297,7 +302,13 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   }
 
   async function regenerateInvite() {
-    if (!confirm("Regenerate invite code? Old links will stop working.")) return;
+    const ok = await confirm({
+      title: "Regenerate invite code?",
+      description: "Old invite links will stop working immediately.",
+      confirmLabel: "Regenerate",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -305,25 +316,36 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       setTeam((prev) =>
         prev ? { ...prev, inviteCode: res.inviteCode } : prev,
       );
+      toast.success("New invite code generated");
       setMsg("New invite code generated");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Could not regenerate");
+      const m = e instanceof Error ? e.message : "Could not regenerate";
+      toast.error(m);
+      setMsg(m);
     } finally {
       setBusy(false);
     }
   }
 
-  async function addByUsername() {
+  async function inviteByUsername(mode: "invite" | "add") {
     setBusy(true);
     setMsg(null);
     try {
-      await v2Api.inviteMember(slug, inviteUser.trim());
+      await v2Api.inviteMember(slug, inviteUser.trim(), mode);
       setInviteOpen(false);
       setInviteUser("");
-      setMsg("Member added");
+      toast.success(
+        mode === "invite" ? "Invite emailed" : "Member added",
+        mode === "invite"
+          ? "They’ll get an in-app notice and email with the join link."
+          : "They’ll get an in-app notice and email.",
+      );
+      setMsg(mode === "invite" ? "Invite sent" : "Member added");
       await refreshAll();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Could not add member");
+      const m = e instanceof Error ? e.message : "Could not invite member";
+      toast.error(m);
+      setMsg(m);
     } finally {
       setBusy(false);
     }
@@ -372,17 +394,26 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   }
 
   async function remove(userId: string) {
-    if (!confirm("Remove this member from the team?")) return;
+    const ok = await confirm({
+      title: "Remove this member?",
+      description: "They will lose access to this team immediately.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await v2Api.removeMember(slug, userId);
+      toast.success("Member removed");
       if (userId === meId) {
         router.push("/teams");
         return;
       }
       await refreshAll();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Remove failed");
+      const m = e instanceof Error ? e.message : "Remove failed";
+      toast.error(m);
+      setMsg(m);
     } finally {
       setBusy(false);
     }
@@ -406,19 +437,24 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   }
 
   async function transferTo(userId: string) {
-    if (
-      !confirm(
-        "Transfer ownership? You will become an admin and cannot undo this alone.",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Transfer ownership?",
+      description:
+        "You will become an admin. This cannot be undone by you alone.",
+      confirmLabel: "Transfer",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await v2Api.transferOwnership(slug, userId);
+      toast.success("Ownership transferred");
       setMsg("Ownership transferred");
       await refreshAll();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Transfer failed");
+      const m = e instanceof Error ? e.message : "Transfer failed";
+      toast.error(m);
+      setMsg(m);
     } finally {
       setBusy(false);
     }
@@ -462,12 +498,14 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   }
 
   async function deleteTeam() {
-    if (
-      !confirm(
-        "Delete this team permanently? Members, targets, and announcements are removed.",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Delete this team permanently?",
+      description:
+        "Members, targets, and announcements for this team will be removed.",
+      confirmLabel: "Delete team",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await v2Api.deleteTeam(slug);
@@ -591,7 +629,13 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   }
 
   async function removeAnnouncement(id: string) {
-    if (!confirm("Delete this announcement?")) return;
+    const ok = await confirm({
+      title: "Delete this announcement?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await v2Api.deleteAnnouncement(slug, id);
@@ -1400,7 +1444,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       <BottomSheet
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        title="Add member by username"
+        title="Invite or add member"
       >
         <Input
           label="Username"
@@ -1409,18 +1453,30 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           onChange={(e) => setInviteUser(e.target.value)}
         />
         <p className="mt-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
-          Adds them immediately. Or share the invite code so they request to
-          join.
+          Invite emails a join link. Add places them on the team immediately
+          (also emails them).
         </p>
-        <Button
-          className="mt-4 w-full"
-          size="sm"
-          loading={busy}
-          onClick={() => void addByUsername()}
-        >
-          Add to team
-        </Button>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Button
+            className="w-full"
+            size="sm"
+            loading={busy}
+            onClick={() => void inviteByUsername("invite")}
+          >
+            Send invite
+          </Button>
+          <Button
+            className="w-full"
+            size="sm"
+            variant="secondary"
+            loading={busy}
+            onClick={() => void inviteByUsername("add")}
+          >
+            Add now
+          </Button>
+        </div>
       </BottomSheet>
+      {confirmDialog}
 
       <BottomSheet
         open={targetOpen}

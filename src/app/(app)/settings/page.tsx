@@ -23,6 +23,7 @@ export default async function SettingsPage() {
       profileVisibility: true,
       timezone: true,
       discoverable: true,
+      contestRemindersEnabled: true,
     },
   });
 
@@ -35,6 +36,7 @@ export default async function SettingsPage() {
         profileVisibility: user.profileVisibility,
         timezone: user.timezone,
         discoverable: user.discoverable,
+        contestRemindersEnabled: user.contestRemindersEnabled,
       }}
     />
   );

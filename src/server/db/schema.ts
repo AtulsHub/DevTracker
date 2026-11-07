@@ -227,6 +227,10 @@ export const users = pgTable("users", {
     .notNull()
     .default(sql`'[]'::jsonb`),
   timezone: varchar("timezone", { length: 60 }).notNull().default("UTC"),
+  /** In-app contest reminders only — never emailed (Resend quota). */
+  contestRemindersEnabled: boolean("contest_reminders_enabled")
+    .notNull()
+    .default(true),
   profileVisibility: profileVisibilityEnum("profile_visibility")
     .notNull()
     .default("PUBLIC"),

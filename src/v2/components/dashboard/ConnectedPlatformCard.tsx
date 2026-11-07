@@ -1,11 +1,13 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { useState, type CSSProperties } from "react";
+import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { PLATFORMS, type PlatformId } from "@/v2/design/platforms";
 import { platformColorVar } from "@/v2/lib/platforms";
 import { formatRelativeTime } from "@/lib/utils";
 import { cn } from "@/v2/lib/cn";
+import { v2Api } from "@/v2/lib/api";
+import { useToast } from "@/v2/feedback/ToastProvider";
 
 export type ConnectedPlatformCardProps = {
   id: string;
@@ -19,6 +21,7 @@ export type ConnectedPlatformCardProps = {
   lastSyncedAt: Date | string | null;
   syncError: string | null;
   dimmed?: boolean;
+  onSynced?: () => void;
 };
 
 function syncStatusLabel(status: string) {
@@ -32,6 +35,7 @@ function syncStatusLabel(status: string) {
 }
 
 export function ConnectedPlatformCard({
+  id,
   platform,
   handle,
   currentRating,
@@ -42,14 +46,30 @@ export function ConnectedPlatformCard({
   lastSyncedAt,
   syncError,
   dimmed = false,
+  onSynced,
 }: ConnectedPlatformCardProps) {
+  const toast = useToast();
+  const [syncing, setSyncing] = useState(false);
   const meta = PLATFORMS[platform as PlatformId];
   const color = platformColorVar(platform);
   const short = meta?.short ?? platform.slice(0, 2).toUpperCase();
   const label = meta?.label ?? platform;
-  const status = syncStatusLabel(syncStatus);
+  const status = syncing ? "Syncing" : syncStatusLabel(syncStatus);
   const needsAttention = status === "Needs attention" || Boolean(syncError);
   const profileUrl = meta?.profileUrl(handle);
+
+  async function retrySync() {
+    setSyncing(true);
+    try {
+      await v2Api.syncPlatform(platform, id);
+      toast.success(`Synced ${label}`);
+      onSynced?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   return (
     <article
@@ -171,16 +191,30 @@ export function ConnectedPlatformCard({
               ? `Synced ${formatRelativeTime(lastSyncedAt)}`
               : "Never synced"}
           </p>
-          {profileUrl ? (
-            <a
-              href={profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] font-semibold text-[var(--v2-primary)] no-underline underline-offset-2 hover:underline"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={() => void retrySync()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--v2-primary)] disabled:opacity-50"
             >
-              Open profile
-            </a>
-          ) : null}
+              <RefreshCw
+                className={cn("size-3", syncing && "animate-spin")}
+                aria-hidden
+              />
+              {syncing ? "Syncing…" : "Retry sync"}
+            </button>
+            {profileUrl ? (
+              <a
+                href={profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-semibold text-[var(--v2-fg-muted)] no-underline underline-offset-2 hover:text-[var(--v2-primary)] hover:underline"
+              >
+                Profile
+              </a>
+            ) : null}
+          </div>
         </div>
 
         {syncError ? (

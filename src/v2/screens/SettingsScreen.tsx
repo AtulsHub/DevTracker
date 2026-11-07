@@ -30,6 +30,7 @@ export type SettingsUser = {
   profileVisibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
   timezone: string | null;
   discoverable: boolean;
+  contestRemindersEnabled: boolean;
 };
 
 type Visibility = SettingsUser["profileVisibility"];
@@ -73,6 +74,9 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
   const [visibility, setVisibility] = useState(user.profileVisibility);
   const [discoverable, setDiscoverable] = useState(user.discoverable);
   const [timezone, setTimezone] = useState(user.timezone ?? "UTC");
+  const [contestReminders, setContestReminders] = useState(
+    user.contestRemindersEnabled,
+  );
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +91,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
   const dirty =
     visibility !== user.profileVisibility ||
     discoverable !== user.discoverable ||
+    contestReminders !== user.contestRemindersEnabled ||
     (timezone || "UTC") !== (user.timezone ?? "UTC");
 
   async function save() {
@@ -97,6 +102,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
         profileVisibility: visibility,
         discoverable,
         timezone: timezone || "UTC",
+        contestRemindersEnabled: contestReminders,
       });
       setMsg("Settings saved");
       startTransition(() => router.refresh());
@@ -286,6 +292,33 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                     </option>
                   ))}
                 </select>
+              </label>
+            </CardBody>
+          </Card>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Contest reminders"
+          description="In-app only (bell). Never emailed — keeps Resend quota for verify/reset/team events."
+        >
+          <Card className="shadow-[var(--v2-shadow-sm)]">
+            <CardBody>
+              <label className="flex cursor-pointer items-start justify-between gap-4">
+                <span>
+                  <span className="block text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                    Remind me ~1 hour before contests
+                  </span>
+                  <span className="mt-1 block text-[var(--v2-text-xs)] leading-relaxed text-[var(--v2-fg-muted)]">
+                    Only for platforms you’ve linked. Shows in Notifications —
+                    no email.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="mt-1 size-4 accent-[var(--v2-primary)]"
+                  checked={contestReminders}
+                  onChange={(e) => setContestReminders(e.target.checked)}
+                />
               </label>
             </CardBody>
           </Card>

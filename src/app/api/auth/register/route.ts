@@ -11,6 +11,7 @@ import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
 import { validateUsername } from "@/lib/username";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { issueEmailVerification } from "@/server/services/email-verification";
 
 const registerSchema = z.object({
   username: z.string().min(1),
@@ -79,15 +80,29 @@ export async function POST(req: Request) {
     // Hash password (bcrypt, 12 rounds)
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Insert user
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Insert user — emailVerified stays null until they confirm via Resend.
     await db.insert(users).values({
-      email,
+      email: normalizedEmail,
       username,
       displayName: username,
       passwordHash,
     });
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    const issued = await issueEmailVerification({
+      email: normalizedEmail,
+      displayName: username,
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        needsVerification: !issued.autoVerified,
+        autoVerified: !!issued.autoVerified,
+      },
+      { status: 201 },
+    );
   } catch (err) {
     console.error("[register] Error:", err);
     return NextResponse.json(

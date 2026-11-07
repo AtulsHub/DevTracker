@@ -5,7 +5,7 @@
  * Users/accounts are persisted in Neon Postgres via the Drizzle adapter;
  * sessions are JWTs (required for the Credentials provider to work).
  */
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
@@ -21,6 +21,10 @@ import {
   authSessions,
   authVerificationTokens,
 } from "@/server/db/auth-tables";
+
+class EmailNotVerified extends CredentialsSignin {
+  code = "email_not_verified";
+}
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -75,6 +79,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
+        // Credentials accounts must verify email (OAuth skips this).
+        if (!user.emailVerified) {
+          throw new EmailNotVerified();
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -110,34 +119,49 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!user.id) return;
       const existing = await db.query.users.findFirst({
         where: eq(users.id, user.id),
-        columns: { username: true, email: true, displayName: true },
+        columns: {
+          username: true,
+          email: true,
+          displayName: true,
+          emailVerified: true,
+        },
       });
-      if (!existing || existing.username) return;
+      if (!existing) return;
 
-      const base =
-        (user.email?.split("@")[0] ?? user.name ?? "user")
-          .toLowerCase()
-          .replace(/[^a-z0-9_]/g, "")
-          .slice(0, 24) || "user";
+      const updates: {
+        username?: string;
+        displayName?: string;
+        emailVerified?: Date;
+        updatedAt: Date;
+      } = { updatedAt: new Date() };
 
-      let candidate = base;
-      for (let i = 0; i < 8; i++) {
-        const clash = await db.query.users.findFirst({
-          where: eq(users.username, candidate),
-          columns: { id: true },
-        });
-        if (!clash) break;
-        candidate = `${base}${Math.floor(Math.random() * 9000 + 1000)}`;
+      // OAuth providers already trust the email — mark verified.
+      if (!existing.emailVerified) {
+        updates.emailVerified = new Date();
       }
 
-      await db
-        .update(users)
-        .set({
-          username: candidate,
-          displayName: existing.displayName ?? user.name ?? candidate,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
+      if (!existing.username) {
+        const base =
+          (user.email?.split("@")[0] ?? user.name ?? "user")
+            .toLowerCase()
+            .replace(/[^a-z0-9_]/g, "")
+            .slice(0, 24) || "user";
+
+        let candidate = base;
+        for (let i = 0; i < 8; i++) {
+          const clash = await db.query.users.findFirst({
+            where: eq(users.username, candidate),
+            columns: { id: true },
+          });
+          if (!clash) break;
+          candidate = `${base}${Math.floor(Math.random() * 9000 + 1000)}`;
+        }
+        updates.username = candidate;
+        updates.displayName =
+          existing.displayName ?? user.name ?? candidate;
+      }
+
+      await db.update(users).set(updates).where(eq(users.id, user.id));
     },
   },
 

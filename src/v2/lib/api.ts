@@ -65,10 +65,26 @@ export const v2Api = {
         body: JSON.stringify({ full: opts?.full ?? true }),
       },
     ),
+  syncPlatform: (platform: string, id: string) =>
+    api(`/api/platforms/${platform}/${id}/sync`, { method: "POST" }),
   linkPlatform: (platform: string, handle: string) =>
     api(`/api/platforms/${platform}/link`, {
       method: "POST",
       body: JSON.stringify({ handle }),
+    }),
+  forgotPassword: (email: string) =>
+    api("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (body: {
+    email: string;
+    token: string;
+    password: string;
+  }) =>
+    api("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   teams: () => api<{ teams: TeamDto[] }>("/api/teams"),
   publicTeams: (q = "", limit = 24) =>
@@ -105,10 +121,30 @@ export const v2Api = {
     api(`/api/teams/${slug}/requests/${userId}`, { method: "POST" }),
   rejectRequest: (slug: string, userId: string) =>
     api(`/api/teams/${slug}/requests/${userId}`, { method: "DELETE" }),
-  inviteMember: (slug: string, username: string) =>
+  inviteMember: (
+    slug: string,
+    username: string,
+    mode: "invite" | "add" = "invite",
+  ) =>
     api(`/api/teams/${slug}/invite`, {
       method: "POST",
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username, mode }),
+    }),
+  notifications: () =>
+    api<{ notifications: NotificationDto[]; unread: number }>(
+      "/api/notifications",
+    ),
+  markAllNotificationsRead: () =>
+    api("/api/notifications", {
+      method: "PATCH",
+      body: JSON.stringify({ all: true }),
+    }),
+  markNotificationRead: (id: string) =>
+    api(`/api/notifications/${id}/read`, { method: "POST" }),
+  resendVerification: (email: string) =>
+    api("/api/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
     }),
   requestJoin: (slug: string) =>
     api(`/api/teams/${slug}/members`, {
@@ -164,7 +200,10 @@ export const v2Api = {
   createTarget: (body: Record<string, unknown>) =>
     api("/api/targets", { method: "POST", body: JSON.stringify(body) }),
   register: (body: { username: string; email: string; password: string }) =>
-    api("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    api<{ ok: boolean; needsVerification?: boolean; autoVerified?: boolean }>(
+      "/api/auth/register",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 };
 
 export interface AnnouncementDto {
@@ -299,6 +338,14 @@ export interface TeamDto {
   visibility?: string;
   memberCount?: number;
   avatarUrl?: string | null;
+}
+
+export interface NotificationDto {
+  id: string;
+  type: string;
+  payload: Record<string, unknown> | null;
+  readAt: string | Date | null;
+  createdAt: string | Date;
 }
 
 export interface TargetDto {

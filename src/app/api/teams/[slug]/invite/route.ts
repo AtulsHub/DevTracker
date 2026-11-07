@@ -1,5 +1,7 @@
 /**
- * POST /api/teams/[slug]/invite — owner/admin adds a member by username.
+ * POST /api/teams/[slug]/invite — owner/admin invite or add a member by username.
+ * mode=invite (default): INVITED + email invite link
+ * mode=add: ACTIVE immediately + email notice
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -7,10 +9,14 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import { teams } from "@/server/db/schema";
-import { addMemberByUsername } from "@/server/services/teams";
+import {
+  addMemberByUsername,
+  inviteMemberByUsername,
+} from "@/server/services/teams";
 
 const schema = z.object({
   username: z.string().min(1).max(40),
+  mode: z.enum(["invite", "add"]).optional().default("invite"),
 });
 
 export async function POST(
@@ -40,11 +46,18 @@ export async function POST(
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    const result = await addMemberByUsername(
-      team.id,
-      session.user.id,
-      parsed.data.username,
-    );
+    const result =
+      parsed.data.mode === "add"
+        ? await addMemberByUsername(
+            team.id,
+            session.user.id,
+            parsed.data.username,
+          )
+        : await inviteMemberByUsername(
+            team.id,
+            session.user.id,
+            parsed.data.username,
+          );
 
     return NextResponse.json({ ok: true, ...result });
   } catch (err: unknown) {

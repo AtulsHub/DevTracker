@@ -236,6 +236,39 @@ export function HomeScreen({
           ) : null}
         </section>
 
+        {needsLink ? (
+          <Card>
+            <EmptyState
+              title="Link a platform to unlock Home"
+              description="Connect Codeforces, LeetCode, or another site so streaks, sync, and contest reminders have something to work with."
+              action={
+                <Link href="/onboarding">
+                  <Button size="sm">
+                    Finish setup
+                    <ArrowRight className="size-3.5" aria-hidden />
+                  </Button>
+                </Link>
+              }
+            />
+          </Card>
+        ) : null}
+
+        {!activeTarget && !needsLink ? (
+          <Card>
+            <EmptyState
+              title="No active target"
+              description="Set a weekly problem goal so Overview can track progress."
+              action={
+                <Link href="/dashboard">
+                  <Button size="sm" variant="secondary">
+                    Set a target
+                  </Button>
+                </Link>
+              }
+            />
+          </Card>
+        ) : null}
+
         {/* Next contest */}
         {next ? (
           <section>

@@ -104,6 +104,7 @@ const updateProfileSchema = z
       .enum(["PUBLIC", "FOLLOWERS_ONLY", "PRIVATE"])
       .optional(),
     discoverable: z.boolean().optional(),
+    contestRemindersEnabled: z.boolean().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "No fields to update",
@@ -132,6 +133,7 @@ export const PROFILE_COLUMNS = {
   certifications: users.certifications,
   customLinks: users.customLinks,
   timezone: users.timezone,
+  contestRemindersEnabled: users.contestRemindersEnabled,
   profileVisibility: users.profileVisibility,
   discoverable: users.discoverable,
 } as const;

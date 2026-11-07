@@ -19,6 +19,12 @@ import {
 } from "@/server/db/schema";
 import { eq, and, desc, count, sql, ilike, or, inArray, gte } from "drizzle-orm";
 import { formatISO, subDays } from "date-fns";
+import {
+  notifyJoinApproved,
+  notifyJoinRequestToLeaders,
+  notifyMemberAdded,
+  notifyMemberInvited,
+} from "@/server/services/team-events";
 
 export interface CreateTeamInput {
   name: string;
@@ -237,6 +243,16 @@ export async function joinTeamByInvite(inviteCode: string, userId: string) {
   });
 
   if (existing) {
+    // Accept a personal INVITED row via the shared invite code.
+    if (existing.status === "INVITED") {
+      await db
+        .update(teamMembers)
+        .set({ status: "ACTIVE", role: "MEMBER" })
+        .where(
+          and(eq(teamMembers.teamId, team.id), eq(teamMembers.userId, userId)),
+        );
+      return { teamId: team.id, slug: team.slug, status: "ACTIVE" as const };
+    }
     // Idempotent: opening an invite link while already a member should succeed
     return { teamId: team.id, slug: team.slug, status: existing.status };
   }
@@ -251,6 +267,10 @@ export async function joinTeamByInvite(inviteCode: string, userId: string) {
     role: "MEMBER",
     status,
   });
+
+  if (status === "PENDING") {
+    void notifyJoinRequestToLeaders({ teamId: team.id, requesterId: userId });
+  }
 
   return { teamId: team.id, slug: team.slug, status };
 }
@@ -288,6 +308,10 @@ export async function requestToJoinTeam(teamId: string, userId: string) {
     role: "MEMBER",
     status,
   });
+
+  if (status === "PENDING") {
+    void notifyJoinRequestToLeaders({ teamId, requesterId: userId });
+  }
 
   return { teamId, status };
 }
@@ -416,6 +440,8 @@ export async function approveJoinRequest(teamId: string, actorId: string, target
     .set({ status: "ACTIVE" })
     .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, targetUserId)));
 
+  void notifyJoinApproved({ teamId, targetUserId });
+
   return { success: true };
 }
 
@@ -445,7 +471,7 @@ export async function rejectJoinRequest(teamId: string, actorId: string, targetU
 
 /**
  * Leader/admin adds a member by username (ACTIVE immediately).
- * Use invite codes when you want the other person to opt in.
+ * Use inviteMemberByUsername when you want them to opt in.
  */
 export async function addMemberByUsername(
   teamId: string,
@@ -474,13 +500,18 @@ export async function addMemberByUsername(
     throw new Error("User is already a member");
   }
 
-  if (existing?.status === "PENDING") {
+  if (existing?.status === "PENDING" || existing?.status === "INVITED") {
     await db
       .update(teamMembers)
       .set({ status: "ACTIVE", role: "MEMBER" })
       .where(
         and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, user.id)),
       );
+    void notifyMemberAdded({
+      teamId,
+      targetUserId: user.id,
+      actorId,
+    });
     return { userId: user.id, username: user.username, status: "ACTIVE" as const };
   }
 
@@ -491,7 +522,84 @@ export async function addMemberByUsername(
     status: "ACTIVE",
   });
 
+  void notifyMemberAdded({
+    teamId,
+    targetUserId: user.id,
+    actorId,
+  });
+
   return { userId: user.id, username: user.username, status: "ACTIVE" as const };
+}
+
+/**
+ * Leader/admin invites a member by username (INVITED until they accept via code).
+ * Sends an important email with the invite link.
+ */
+export async function inviteMemberByUsername(
+  teamId: string,
+  actorId: string,
+  username: string,
+) {
+  const actorMembership = await db.query.teamMembers.findFirst({
+    where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, actorId)),
+  });
+
+  if (!actorMembership || !["OWNER", "ADMIN"].includes(actorMembership.role)) {
+    throw new Error("Only owners and admins can invite members");
+  }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.username, username.trim().replace(/^@/, "")),
+    columns: { id: true, username: true },
+  });
+  if (!user) throw new Error("User not found");
+
+  const existing = await db.query.teamMembers.findFirst({
+    where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, user.id)),
+  });
+
+  if (existing?.status === "ACTIVE") {
+    throw new Error("User is already a member");
+  }
+  if (existing?.status === "INVITED") {
+    void notifyMemberInvited({
+      teamId,
+      targetUserId: user.id,
+      actorId,
+    });
+    return {
+      userId: user.id,
+      username: user.username,
+      status: "INVITED" as const,
+    };
+  }
+  if (existing?.status === "PENDING") {
+    await db
+      .update(teamMembers)
+      .set({ status: "INVITED", role: "MEMBER" })
+      .where(
+        and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, user.id)),
+      );
+  } else {
+    await db.insert(teamMembers).values({
+      teamId,
+      userId: user.id,
+      role: "MEMBER",
+      status: "INVITED",
+    });
+  }
+
+  void notifyMemberInvited({
+    teamId,
+    targetUserId: user.id,
+    actorId,
+  });
+
+  return {
+    userId: user.id,
+    username: user.username,
+    status: "INVITED" as const,
+  };
 }
 
 /**

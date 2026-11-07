@@ -650,6 +650,7 @@ function DashboardScreenInner({
                     key={p.id}
                     {...p}
                     dimmed={dimmed}
+                    onSynced={() => router.refresh()}
                   />
                 );
               })}

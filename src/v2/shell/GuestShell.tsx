@@ -16,6 +16,7 @@ import {
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 import { UserAccountMenu } from "./UserAccountMenu";
 import { MobileAccountSheet } from "./MobileAccountSheet";
+import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/v2/lib/cn";
 import {
   MARKETING_NAV,
@@ -199,6 +200,8 @@ function GuestTopBar({
             <Moon className="size-4" />
           )}
         </button>
+
+        {signedIn ? <NotificationBell /> : null}
 
         {/* Phone: menu opens account sheet (logout / settings / socials) */}
         <button
