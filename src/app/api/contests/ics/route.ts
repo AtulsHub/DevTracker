@@ -1,17 +1,18 @@
 /**
  * src/app/api/contests/ics/route.ts
  * GET /api/contests/ics — Generate .ics calendar file for contests
- * Query params: platform, startDate, endDate
+ * Query params: id (single contest), platform, startDate, endDate
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getContests } from "@/server/services/contests";
+import { getContestById, getContests } from "@/server/services/contests";
 
 const querySchema = z.object({
+  id: z.string().min(1).optional(),
   platform: z.string().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  filename: z.string().default("devtrack-contests.ics"),
+  filename: z.string().optional(),
 });
 
 function formatICSDate(date: Date): string {
@@ -85,21 +86,35 @@ export async function GET(req: Request) {
       );
     }
 
-    const { platform, startDate, endDate, filename } = parsed.data;
+    const { id, platform, startDate, endDate, filename } = parsed.data;
 
-    const contests = await getContests({
-      platform,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-      limit: 500,
-    });
+    let contests;
+    if (id) {
+      const one = await getContestById(id);
+      if (!one) {
+        return NextResponse.json({ error: "Contest not found" }, { status: 404 });
+      }
+      contests = [one];
+    } else {
+      contests = await getContests({
+        platform,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        limit: 500,
+      });
+    }
 
     const icsContent = generateICS(contests);
+    const safeName =
+      filename ??
+      (id
+        ? `devtrack-${contests[0]!.platform}-${contests[0]!.externalId}.ics`
+        : "devtrack-contests.ics");
 
     return new NextResponse(icsContent, {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${safeName}"`,
         "Cache-Control": "public, max-age=3600",
       },
     });

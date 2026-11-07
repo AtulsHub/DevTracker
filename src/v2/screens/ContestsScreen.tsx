@@ -15,6 +15,7 @@ import { PageHeader } from "@/v2/components/PageHeader";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import { v2Api, type ContestDto } from "@/v2/lib/api";
 import { cn } from "@/v2/lib/cn";
+import { googleCalendarEventUrl } from "@/lib/google-calendar-url";
 
 type View = "agenda" | "calendar";
 
@@ -238,7 +239,21 @@ function ContestRow({ contest: c }: { contest: ContestDto }) {
     ? new Date(start.getTime() + Number(c.durationSeconds) * 1000)
     : null;
   const duration = formatDuration(c.durationSeconds);
-  const ics = `/api/contests/ics?platform=${encodeURIComponent(c.platform)}`;
+  const platformLabel =
+    PLATFORMS[c.platform as keyof typeof PLATFORMS]?.label ?? c.platform;
+  const gcal = googleCalendarEventUrl({
+    title: `${platformLabel}: ${c.name}`,
+    startsAt: start,
+    durationSeconds: c.durationSeconds,
+    description: [
+      `${platformLabel} contest`,
+      c.url ? `Open: ${c.url}` : null,
+      "Added from DevTrack",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    location: c.url,
+  });
   return (
     <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border-subtle)] bg-[var(--v2-bg)] p-3 transition-colors hover:border-[var(--v2-border)]">
       <div className="mb-1.5 flex flex-wrap items-center gap-2">
@@ -286,9 +301,9 @@ function ContestRow({ contest: c }: { contest: ContestDto }) {
             </Button>
           </a>
         ) : null}
-        <a href={ics}>
-          <Button size="sm" variant="ghost">
-            Add to calendar
+        <a href={gcal} target="_blank" rel="noopener noreferrer">
+          <Button size="sm" variant="secondary">
+            Google Calendar
           </Button>
         </a>
       </div>
