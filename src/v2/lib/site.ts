@@ -26,7 +26,7 @@ export const MARKETING_NAV: MarketingNavItem[] = [
 ];
 
 export type SocialLink = {
-  id: "github" | "x" | "discord";
+  id: "github" | "x" | "discord" | "email";
   label: string;
   href: string;
 };
@@ -37,7 +37,12 @@ function envUrl(key: string, fallback: string) {
   return v && v.length > 0 ? v : fallback;
 }
 
-/** Product social links (shown in landing nav + footer). */
+function contactEmailHref() {
+  const raw = envUrl("NEXT_PUBLIC_SOCIAL_EMAIL", "hello@devtrack.app");
+  return raw.startsWith("mailto:") ? raw : `mailto:${raw}`;
+}
+
+/** Product contact links (landing nav, footer, account sheet). */
 export const SITE_SOCIAL: SocialLink[] = [
   {
     id: "github",
@@ -53,6 +58,11 @@ export const SITE_SOCIAL: SocialLink[] = [
     id: "discord",
     label: "Discord",
     href: envUrl("NEXT_PUBLIC_SOCIAL_DISCORD", "https://discord.com"),
+  },
+  {
+    id: "email",
+    label: "Gmail",
+    href: contactEmailHref(),
   },
 ];
 

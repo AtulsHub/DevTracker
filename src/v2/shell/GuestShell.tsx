@@ -1,10 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
+import {
+  Calendar,
+  CircleUserRound,
+  Compass,
+  Home,
+  Menu,
+  Moon,
+  Sun,
+  Users,
+} from "lucide-react";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 import { UserAccountMenu } from "./UserAccountMenu";
+import { MobileAccountSheet } from "./MobileAccountSheet";
 import { cn } from "@/v2/lib/cn";
 import {
   MARKETING_NAV,
@@ -52,23 +63,53 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
+function GmailIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="#EA4335"
+        d="M12 13.04 1.5 5.4V18.6c0 .99.81 1.8 1.8 1.8h4.2v-7.56L12 16.2l4.5-3.36V20.4h4.2c.99 0 1.8-.81 1.8-1.8V5.4L12 13.04z"
+      />
+      <path
+        fill="#C5221F"
+        d="M12 13.04 22.5 5.4V4.2c0-1.32-1.43-2.1-2.52-1.38L12 8.4 4.02 2.82C2.93 2.1 1.5 2.88 1.5 4.2v1.2L12 13.04z"
+      />
+      <path fill="#4285F4" d="M1.5 5.4v13.2c0 .99.81 1.8 1.8 1.8h4.2v-7.56L1.5 5.4z" />
+      <path
+        fill="#34A853"
+        d="M16.5 12.84V20.4h4.2c.99 0 1.8-.81 1.8-1.8V5.4L16.5 12.84z"
+      />
+    </svg>
+  );
+}
+
 function SocialIcon({ id, className }: { id: string; className?: string }) {
   if (id === "github") return <GithubIcon className={className} />;
   if (id === "x") return <XIcon className={className} />;
   if (id === "discord") return <DiscordIcon className={className} />;
+  if (id === "email") return <GmailIcon className={className} />;
   return null;
 }
+
+const MOBILE_ICONS: Record<string, typeof Home> = {
+  home: Home,
+  "/contests": Calendar,
+  "/explore": Compass,
+  "/teams": Users,
+};
 
 function GuestTopBar({
   signedIn,
   userName,
   userEmail,
   userImage,
+  onOpenAccount,
 }: {
   signedIn: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
+  onOpenAccount: () => void;
 }) {
   const pathname = usePathname();
   const { resolved, setTheme } = useTheme();
@@ -127,25 +168,29 @@ function GuestTopBar({
       </div>
 
       <div className="flex items-center gap-1 sm:gap-1.5">
-        <div className="mr-0.5 hidden items-center gap-0.5 lg:flex" aria-label="Social">
-          {SITE_SOCIAL.map((s) => (
-            <a
-              key={s.id}
-              href={s.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={s.label}
-              className="flex size-9 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
-            >
-              <SocialIcon id={s.id} className="size-4" />
-            </a>
-          ))}
+        <div className="mr-0.5 hidden items-center gap-0.5 lg:flex" aria-label="Contact us">
+          {SITE_SOCIAL.map((s) => {
+            const external = !s.href.startsWith("mailto:");
+            return (
+              <a
+                key={s.id}
+                href={s.href}
+                {...(external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                aria-label={s.label}
+                className="flex size-9 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
+              >
+                <SocialIcon id={s.id} className="size-4" />
+              </a>
+            );
+          })}
         </div>
 
         <button
           type="button"
           aria-label="Toggle theme"
-          className="flex size-9 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
+          className="flex size-10 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)] sm:size-9"
           onClick={() => setTheme(resolved === "dark" ? "light" : "dark")}
         >
           {resolved === "dark" ? (
@@ -155,82 +200,150 @@ function GuestTopBar({
           )}
         </button>
 
-        {signedIn ? (
-          <div className="flex items-center gap-1.5 pl-0.5">
-            <Link
-              href="/dashboard"
-              className="hidden min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)] sm:inline-flex"
-            >
-              Open app
-            </Link>
-            <UserAccountMenu
-              compact
-              userName={userName}
-              userEmail={userEmail}
-              userImage={userImage}
+        {/* Phone: menu opens account sheet (logout / settings / socials) */}
+        <button
+          type="button"
+          aria-label="Open menu"
+          className="flex size-10 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)] sm:hidden"
+          onClick={onOpenAccount}
+        >
+          {signedIn && userImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={userImage}
+              alt=""
+              className="size-7 rounded-full object-cover ring-1 ring-[var(--v2-border)]"
             />
-          </div>
-        ) : (
-          <>
-            <Link
-              href="/sign-in"
-              className="hidden min-h-8 items-center rounded-[var(--v2-radius-md)] px-3 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)] no-underline transition-colors hover:text-[var(--v2-fg)] sm:inline-flex"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/sign-up"
-              className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
-            >
-              Sign up
-            </Link>
-          </>
-        )}
+          ) : (
+            <Menu className="size-5" />
+          )}
+        </button>
+
+        {/* Tablet/desktop account controls */}
+        <div className="hidden items-center gap-1.5 sm:flex">
+          {signedIn ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
+              >
+                Open app
+              </Link>
+              <UserAccountMenu
+                compact
+                userName={userName}
+                userEmail={userEmail}
+                userImage={userImage}
+              />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] px-3 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)] no-underline transition-colors hover:text-[var(--v2-fg)]"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/sign-up"
+                className="inline-flex min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)]"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
 }
 
-function GuestBottomBar({ signedIn }: { signedIn: boolean }) {
+function GuestBottomBar({
+  signedIn,
+  userImage,
+  onOpenAccount,
+  accountOpen,
+}: {
+  signedIn: boolean;
+  userImage?: string | null;
+  onOpenAccount: () => void;
+  accountOpen: boolean;
+}) {
   const pathname = usePathname();
   const home = siteHomeHref(signedIn);
-  const items = signedIn
-    ? [
-        { href: home, label: "Home" },
-        ...MARKETING_NAV.map((l) => ({ href: l.href, label: l.label })),
-        { href: "/dashboard", label: "App" },
-        { href: "/profile", label: "Profile" },
-      ]
-    : [
-        { href: home, label: "Home" },
-        ...MARKETING_NAV.map((l) => ({ href: l.href, label: l.label })),
-        { href: "/sign-up", label: "Sign up" },
-      ];
+
+  const items = [
+    { href: home, label: "Home", iconKey: "home" },
+    ...MARKETING_NAV.map((l) => ({
+      href: l.href,
+      label: l.label,
+      iconKey: l.href,
+    })),
+  ].slice(0, 4);
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[var(--v2-z-nav)] flex h-[var(--v2-bottom-nav-h)] items-stretch justify-around border-t border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/95 px-1 backdrop-blur-md sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-[var(--v2-z-nav)] border-t border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/95 backdrop-blur-md sm:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Browse"
     >
-      {items.map((l) => {
-        const active =
-          l.href === home
-            ? isMarketingHome(pathname)
-            : pathname === l.href || pathname.startsWith(`${l.href}/`);
-        return (
-          <Link
-            key={`${l.href}-${l.label}`}
-            href={l.href}
+      <ul className="flex h-[var(--v2-bottom-nav-h)] items-stretch justify-around gap-0.5 px-1.5">
+        {items.map((l) => {
+          const active =
+            l.iconKey === "home"
+              ? isMarketingHome(pathname)
+              : pathname === l.href || pathname.startsWith(`${l.href}/`);
+          const Icon = MOBILE_ICONS[l.iconKey] ?? Home;
+          return (
+            <li key={`${l.href}-${l.label}`} className="flex min-w-0 flex-1">
+              <Link
+                href={l.href}
+                className={cn(
+                  "flex min-h-12 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium no-underline transition-colors",
+                  active ? "text-[var(--v2-primary)]" : "text-[var(--v2-fg-subtle)]",
+                )}
+              >
+                <Icon
+                  className="size-5"
+                  strokeWidth={active ? 2.25 : 1.75}
+                  aria-hidden
+                />
+                <span className="truncate">{l.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+        <li className="flex min-w-0 flex-1">
+          <button
+            type="button"
+            aria-expanded={accountOpen}
+            aria-haspopup="dialog"
+            onClick={onOpenAccount}
             className={cn(
-              "flex min-h-11 flex-1 flex-col items-center justify-center text-[10px] font-medium no-underline transition-colors",
-              active ? "text-[var(--v2-primary)]" : "text-[var(--v2-fg-subtle)]",
+              "flex min-h-12 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
+              accountOpen
+                ? "text-[var(--v2-primary)]"
+                : "text-[var(--v2-fg-subtle)]",
             )}
           >
-            {l.label}
-          </Link>
-        );
-      })}
+            {signedIn && userImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={userImage}
+                alt=""
+                className="size-5 rounded-full object-cover"
+              />
+            ) : (
+              <CircleUserRound
+                className="size-5"
+                strokeWidth={accountOpen ? 2.25 : 1.75}
+                aria-hidden
+              />
+            )}
+            <span className="truncate">You</span>
+          </button>
+        </li>
+      </ul>
     </nav>
   );
 }
@@ -248,6 +361,8 @@ export function GuestShell({
   userEmail?: string | null;
   userImage?: string | null;
 }) {
+  const [accountOpen, setAccountOpen] = useState(false);
+
   return (
     <ThemeProvider>
       <div className="flex min-h-dvh flex-col bg-[var(--v2-bg)] text-[var(--v2-fg)]">
@@ -256,11 +371,26 @@ export function GuestShell({
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
+          onOpenAccount={() => setAccountOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden pb-[calc(var(--v2-bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] sm:pb-8">
           {children}
         </main>
-        <GuestBottomBar signedIn={signedIn} />
+        <GuestBottomBar
+          signedIn={signedIn}
+          userImage={userImage}
+          accountOpen={accountOpen}
+          onOpenAccount={() => setAccountOpen(true)}
+        />
+        <MobileAccountSheet
+          open={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          signedIn={signedIn}
+          userName={userName}
+          userEmail={userEmail}
+          userImage={userImage}
+          variant="marketing"
+        />
       </div>
     </ThemeProvider>
   );

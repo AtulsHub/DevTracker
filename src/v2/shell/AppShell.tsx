@@ -60,7 +60,12 @@ export function AppShell({
             {children}
           </main>
         </div>
-        <BottomNav signedIn />
+        <BottomNav
+          signedIn
+          userName={userName}
+          userEmail={userEmail}
+          userImage={userImage}
+        />
       </div>
     </ThemeProvider>
   );

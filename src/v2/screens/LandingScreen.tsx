@@ -328,21 +328,25 @@ export function LandingScreen({
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--land-muted)]">
-                Social
+                Contact us
               </p>
               <ul className="mt-3 space-y-2 text-[var(--v2-text-sm)]">
-                {SITE_SOCIAL.map((s) => (
-                  <li key={s.id}>
-                    <a
-                      href={s.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
-                    >
-                      {s.label}
-                    </a>
-                  </li>
-                ))}
+                {SITE_SOCIAL.map((s) => {
+                  const external = !s.href.startsWith("mailto:");
+                  return (
+                    <li key={s.id}>
+                      <a
+                        href={s.href}
+                        {...(external
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
+                        className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                      >
+                        {s.label}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>

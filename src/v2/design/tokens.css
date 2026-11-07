@@ -119,6 +119,15 @@
   color-scheme: light;
 }
 
+/* Phone: taller bottom bar for icons + labels + account sheet entry */
+@media (max-width: 767px) {
+  :root,
+  [data-theme="light"],
+  [data-theme="dark"] {
+    --v2-bottom-nav-h: 68px;
+  }
+}
+
 [data-theme="dark"] {
   /* Brand — soft indigo CTAs (black labels; no lime) */
   --v2-primary: #818cf8;

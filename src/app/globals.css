@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../v2/design/tokens.css";
 @import "../v2/design/landing.css";
+@import "../v2/design/auth.css";
 
 @layer base {
   *,
