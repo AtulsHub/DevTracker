@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import type { ContestDto } from "@/v2/lib/api";
 import { MARKETING_NAV, SITE_SOCIAL } from "@/v2/lib/site";
+import { BrandLogo } from "@/v2/components/Brand";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -28,9 +29,11 @@ type Featured = {
 export function LandingScreen({
   contests,
   featured,
+  signedIn = false,
 }: {
   contests: ContestDto[];
   featured: Featured[];
+  signedIn?: boolean;
 }) {
   const next = contests[0];
   const people = featured.slice(0, 5);
@@ -38,30 +41,36 @@ export function LandingScreen({
   return (
     <div className={`${syne.variable} ${dmSans.variable} landing`}>
       {/* ── Hero: one composition ── */}
-      <section className="landing-hero relative min-h-[calc(100dvh-var(--v2-topbar-h))] overflow-hidden">
+      <section className="landing-hero relative min-h-[min(78dvh,36rem)] overflow-hidden sm:min-h-[calc(100dvh-var(--v2-topbar-h))]">
         <HeatPlane />
-        <div className="landing-scan pointer-events-none absolute inset-x-0 top-0 z-[1] h-24 bg-gradient-to-b from-[color-mix(in_srgb,var(--land-accent)_30%,transparent)] to-transparent" />
+        <div className="landing-scan pointer-events-none absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-[color-mix(in_srgb,var(--land-accent)_30%,transparent)] to-transparent sm:h-24" />
 
-        <div className="relative z-[2] mx-auto flex min-h-[calc(100dvh-var(--v2-topbar-h))] w-full max-w-[var(--v2-content-max)] flex-col justify-end px-5 pb-12 pt-16 sm:px-8 sm:pb-16 lg:pb-20">
-          <p
-            className="landing-rise landing-display text-[clamp(3.5rem,14vw,9.5rem)] font-bold leading-[0.85] tracking-[-0.04em] text-[var(--land-fg)]"
-            aria-label="DevTrack"
-          >
-            DevTrack
-          </p>
-          <h1 className="landing-rise landing-rise-delay-1 mt-6 max-w-xl landing-display text-[clamp(1.35rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-[var(--land-fg)]">
+        <div className="relative z-[2] mx-auto flex min-h-[min(78dvh,36rem)] w-full max-w-[var(--v2-content-max)] flex-col justify-end px-5 pb-10 pt-10 sm:min-h-[calc(100dvh-var(--v2-topbar-h))] sm:px-8 sm:pb-16 sm:pt-16 lg:pb-20">
+          <div className="landing-rise" aria-label="DevTrack">
+            <BrandLogo
+              height={68}
+              priority
+              className="max-w-[min(100%,20rem)] sm:hidden"
+            />
+            <BrandLogo
+              height={108}
+              priority
+              className="hidden max-w-[min(100%,34rem)] sm:inline-flex"
+            />
+          </div>
+          <h1 className="landing-rise landing-rise-delay-1 mt-5 max-w-xl landing-display text-[clamp(1.3rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-[var(--land-fg)] sm:mt-6">
             Your contest life, finally in one pulse.
           </h1>
-          <p className="landing-rise landing-rise-delay-2 mt-3 max-w-md text-[1.05rem] leading-relaxed text-[var(--land-muted)]">
-            Ratings, streaks, and calendars from five platforms — synced into a
-            workspace built for people who actually grind.
+          <p className="landing-rise landing-rise-delay-2 mt-3 max-w-md text-[1rem] leading-relaxed text-[var(--land-muted)] sm:text-[1.05rem]">
+            Ratings, streaks, and calendars from Codeforces, LeetCode, AtCoder,
+            and CodeChef — synced into a workspace built for people who grind.
           </p>
-          <div className="landing-rise landing-rise-delay-3 mt-8 flex flex-wrap items-center gap-3">
+          <div className="landing-rise landing-rise-delay-3 mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
             <Link
-              href="/sign-up"
+              href={signedIn ? "/dashboard" : "/sign-up"}
               className="landing-cta inline-flex min-h-12 items-center gap-2 px-6 text-[0.95rem] font-semibold no-underline transition-transform duration-200 hover:-translate-y-0.5"
             >
-              Start free
+              {signedIn ? "Open overview" : "Start free"}
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link
@@ -244,10 +253,10 @@ export function LandingScreen({
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link
-              href="/sign-up"
+              href={signedIn ? "/dashboard" : "/sign-up"}
               className="landing-cta inline-flex min-h-12 items-center gap-2 px-6 text-[0.95rem] font-semibold no-underline transition-transform duration-200 hover:-translate-y-0.5"
             >
-              Create account
+              {signedIn ? "Open overview" : "Create account"}
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link
@@ -263,10 +272,8 @@ export function LandingScreen({
       <footer className="border-t border-[var(--land-line)] bg-[var(--land-bg)] px-5 py-10 sm:px-8">
         <div className="mx-auto flex max-w-[var(--v2-content-max)] flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="landing-display text-lg font-semibold text-[var(--land-fg)]">
-              DevTrack
-            </p>
-            <p className="mt-2 max-w-xs text-[var(--v2-text-sm)] text-[var(--land-muted)]">
+            <BrandLogo height={32} className="max-w-[11rem]" />
+            <p className="mt-3 max-w-xs text-[var(--v2-text-sm)] text-[var(--land-muted)]">
               Built for competitive programmers who want one pulse across every
               platform.
             </p>
@@ -300,30 +307,35 @@ export function LandingScreen({
                 Account
               </p>
               <ul className="mt-3 space-y-2 text-[var(--v2-text-sm)]">
-                <li>
-                  <Link
-                    href="/sign-in"
-                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
-                  >
-                    Sign in
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/sign-up"
-                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
-                  >
-                    Sign up
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/dashboard"
-                    className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
-                  >
-                    Open app
-                  </Link>
-                </li>
+                {signedIn ? (
+                  <li>
+                    <Link
+                      href="/dashboard"
+                      className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                    >
+                      Open app
+                    </Link>
+                  </li>
+                ) : (
+                  <>
+                    <li>
+                      <Link
+                        href="/sign-in"
+                        className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                      >
+                        Sign in
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/sign-up"
+                        className="text-[var(--land-fg)] no-underline hover:text-[var(--land-accent)]"
+                      >
+                        Sign up
+                      </Link>
+                    </li>
+                  </>
+                )}
               </ul>
             </div>
             <div>

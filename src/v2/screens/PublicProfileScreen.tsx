@@ -50,10 +50,12 @@ export type PublicProfileData = {
   projects?: ProjectEntry[];
   certifications?: CertificationEntry[];
   customLinks?: CustomLinkEntry[];
+  openToWork?: boolean;
   platforms?: Array<{
     platform: string;
     handle: string;
     currentRating: number | null;
+    maxRating?: number | null;
     solvedCount: number;
     rank?: string | null;
   }>;
@@ -62,6 +64,8 @@ export type PublicProfileData = {
     platform: string;
     title: string;
     url: string | null;
+    rating?: number | null;
+    language?: string | null;
     submittedAt: Date | string;
   }>;
   totalSolved?: number;
@@ -107,10 +111,10 @@ export function PublicProfileScreen(props: PublicProfileData) {
   const projects = props.projects ?? [];
   const certifications = props.certifications ?? [];
   const platforms = props.platforms ?? [];
-  const bestRating = platforms.reduce(
-    (m, p) => Math.max(m, p.currentRating ?? 0),
-    0,
-  );
+  const bestRating = platforms.reduce((m, p) => {
+    const peak = Math.max(p.currentRating ?? 0, p.maxRating ?? 0);
+    return Math.max(m, peak);
+  }, 0);
 
   const links = [
     props.resumeUrl ? { label: "Resume", href: props.resumeUrl } : null,
@@ -129,6 +133,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
     education.length ? { id: "education", label: "Education" } : null,
     projects.length ? { id: "projects", label: "Projects" } : null,
     certifications.length ? { id: "certs", label: "Certs" } : null,
+    skillList.length ? { id: "skills", label: "Skills" } : null,
     { id: "platforms", label: "Platforms" },
     { id: "activity", label: "Activity" },
   ].filter(Boolean) as { id: string; label: string }[];
@@ -188,9 +193,16 @@ export function PublicProfileScreen(props: PublicProfileData) {
             </div>
           </div>
 
-          <h1 className="text-[1.75rem] font-semibold tracking-tight text-[var(--v2-fg)]">
-            {name}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-[1.75rem] font-semibold tracking-tight text-[var(--v2-fg)]">
+              {name}
+            </h1>
+            {props.openToWork ? (
+              <span className="rounded-[var(--v2-radius-full)] border border-[var(--v2-success)]/30 bg-[var(--v2-success)]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--v2-success)]">
+                Open to work
+              </span>
+            ) : null}
+          </div>
           <p className="mt-0.5 font-mono text-[var(--v2-text-sm)] text-[var(--v2-fg-subtle)]">
             @{username}
           </p>
@@ -215,6 +227,14 @@ export function PublicProfileScreen(props: PublicProfileData) {
             ) : null}
             {props.age != null ? <span>{props.age} yrs</span> : null}
           </div>
+
+          {platforms.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {platforms.map((p) => (
+                <PlatformBadge key={p.platform} platform={p.platform} />
+              ))}
+            </div>
+          ) : null}
 
           {links.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -480,15 +500,25 @@ export function PublicProfileScreen(props: PublicProfileData) {
                         </div>
                         <div className="text-right">
                           <p className="font-mono text-xl font-semibold tabular-nums text-[var(--v2-fg)]">
-                            {p.solvedCount}
+                            {p.solvedCount.toLocaleString()}
                           </p>
                           <p className="text-[10px] uppercase tracking-wide text-[var(--v2-fg-subtle)]">
                             Solved
                           </p>
-                          {p.currentRating != null ? (
-                            <p className="mt-1 font-mono text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
-                              {p.currentRating} rating
-                            </p>
+                          {p.currentRating != null || p.maxRating != null ? (
+                            <div className="mt-1 space-y-0.5">
+                              {p.currentRating != null ? (
+                                <p className="font-mono text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
+                                  {p.currentRating} rating
+                                </p>
+                              ) : null}
+                              {p.maxRating != null &&
+                              p.maxRating !== p.currentRating ? (
+                                <p className="font-mono text-[10px] text-[var(--v2-fg-subtle)]">
+                                  Peak {p.maxRating}
+                                </p>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
                       </div>
@@ -524,11 +554,21 @@ export function PublicProfileScreen(props: PublicProfileData) {
                           s.title
                         )}
                       </p>
-                      <div className="mt-1.5 flex items-center gap-2">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <PlatformBadge platform={s.platform} />
                         <span className="text-[11px] text-[var(--v2-fg-subtle)]">
                           {platformLabel(s.platform)}
                         </span>
+                        {s.rating != null ? (
+                          <span className="font-mono text-[11px] text-[var(--v2-fg-subtle)]">
+                            {s.rating}
+                          </span>
+                        ) : null}
+                        {s.language ? (
+                          <span className="rounded-[var(--v2-radius-md)] bg-[var(--v2-bg-muted)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--v2-fg-subtle)]">
+                            {s.language}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <time className="shrink-0 font-mono text-[11px] text-[var(--v2-fg-subtle)]">
@@ -543,7 +583,7 @@ export function PublicProfileScreen(props: PublicProfileData) {
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
           {skillList.length > 0 ? (
-            <Card className="shadow-[var(--v2-shadow-sm)]">
+            <Card id="skills" className="scroll-mt-28 shadow-[var(--v2-shadow-sm)]">
               <CardHeader>
                 <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                   Skills

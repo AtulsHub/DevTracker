@@ -24,6 +24,15 @@ export const metadata: Metadata = {
   },
   description:
     "Track DSA progress across Codeforces, LeetCode, AtCoder, and CodeChef. Contests, teams, and public profiles.",
+  icons: {
+    icon: [
+      { url: "/logo/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/logo/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo/favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/logo/favicon-64.png", sizes: "64x64", type: "image/png" },
+    ],
+    apple: [{ url: "/logo/devtrack-app-icon-light.png", sizes: "512x512" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

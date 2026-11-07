@@ -50,6 +50,7 @@ export default async function PublicUserPage({ params }: Props) {
       projects={data.projects}
       certifications={data.certifications}
       customLinks={data.customLinks}
+      openToWork={data.openToWork}
       platforms={data.platforms}
       totalSolved={data.totalSolved}
       isOwner={data.isOwner}

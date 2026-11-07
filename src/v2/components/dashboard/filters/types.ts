@@ -20,7 +20,7 @@ export type DashboardFilterState = {
 
 export const DEFAULT_FILTERS: DashboardFilterState = {
   platforms: [],
-  range: "30d",
+  range: "90d",
   customFrom: null,
   customTo: null,
   compare: false,

@@ -144,7 +144,10 @@ export function useDashboardFilters(linkedPlatforms: string[]) {
 
     return {
       platforms,
-      range: range === "custom" && !customFrom && !customTo ? "30d" : range,
+      range:
+        range === "custom" && !customFrom && !customTo
+          ? DEFAULT_FILTERS.range
+          : range,
       customFrom: range === "custom" ? customFrom : null,
       customTo: range === "custom" ? customTo : null,
       compare: compare && selectedCount >= 2,

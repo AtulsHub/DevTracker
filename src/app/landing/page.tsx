@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { auth } from "@/server/auth";
 import { LandingScreen } from "@/v2/screens/LandingScreen";
 import { loadFeaturedUsers, loadUpcomingContests } from "@/v2/lib/queries";
 
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
+  const session = await auth();
   const [contests, featured] = await Promise.all([
     loadUpcomingContests(21),
     loadFeaturedUsers(8),
@@ -21,5 +23,11 @@ export default async function LandingPage() {
       c.startsAt instanceof Date ? c.startsAt.toISOString() : String(c.startsAt),
   }));
 
-  return <LandingScreen contests={serialized} featured={featured} />;
+  return (
+    <LandingScreen
+      contests={serialized}
+      featured={featured}
+      signedIn={!!session?.user?.id}
+    />
+  );
 }

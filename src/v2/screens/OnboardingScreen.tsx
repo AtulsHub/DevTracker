@@ -10,6 +10,7 @@ import { Input } from "@/v2/components/Input";
 import { v2Api } from "@/v2/lib/api";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import { cn } from "@/v2/lib/cn";
+import { BrandMark } from "@/v2/components/Brand";
 import { useToast } from "@/v2/feedback/ToastProvider";
 
 type Step = 0 | 1 | 2 | 3;
@@ -93,9 +94,7 @@ export function OnboardingScreen({
   return (
     <div className="mx-auto flex min-h-[70dvh] w-full max-w-lg flex-col justify-center px-4 py-8">
       <div className="mb-1 flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-[var(--v2-on-primary)]">
-          DT
-        </span>
+        <BrandMark size="md" />
         <span className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)]">
           Welcome
         </span>

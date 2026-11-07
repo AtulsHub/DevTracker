@@ -9,6 +9,7 @@ export default auth((req) => {
 
   const protectedPrefixes = [
     "/dashboard",
+    "/home",
     "/settings",
     "/profile",
     "/onboarding",

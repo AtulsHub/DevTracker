@@ -30,6 +30,16 @@
     color: inherit;
   }
 
+  /* Force CTA label contrast — base `color` inherit must not win over primary. */
+  .v2-btn-primary,
+  .v2-btn-primary * {
+    color: var(--v2-on-primary) !important;
+  }
+  .v2-btn-danger,
+  .v2-btn-danger * {
+    color: #ffffff !important;
+  }
+
   :focus-visible {
     outline: 2px solid var(--v2-primary);
     outline-offset: 2px;
@@ -49,4 +59,28 @@
     transition-duration: var(--v2-duration);
     transition-timing-function: var(--v2-ease);
   }
+}
+
+@keyframes v2-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.v2-loader-ring {
+  animation: v2-loader-spin 0.85s linear infinite;
+}
+
+/* Theme-aware wordmark (assets include baked backgrounds that match chrome). */
+.brand-logo-light {
+  display: block;
+}
+.brand-logo-dark {
+  display: none;
+}
+[data-theme="dark"] .brand-logo-light {
+  display: none;
+}
+[data-theme="dark"] .brand-logo-dark {
+  display: block;
 }

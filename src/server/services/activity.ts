@@ -573,3 +573,69 @@ export async function getTotalSolved(userId: string): Promise<number> {
     .where(eq(solves.userId, userId));
   return Number(row?.total ?? 0);
 }
+
+/**
+ * Batch version of getTotalSolved for Explore / leaderboards.
+ * Same formula: per platform Math.max(local OK distinct, reportedSolvedCount).
+ */
+export async function getTotalSolvedByUserIds(
+  userIds: string[],
+): Promise<Map<string, number>> {
+  const totals = new Map<string, number>();
+  if (userIds.length === 0) return totals;
+
+  const accounts = await db.query.platformAccounts.findMany({
+    where: inArray(platformAccounts.userId, userIds),
+    columns: {
+      id: true,
+      userId: true,
+      reportedSolvedCount: true,
+    },
+  });
+
+  const accountIds = accounts.map((a) => a.id);
+  const localByAccount = new Map<string, number>();
+  if (accountIds.length > 0) {
+    const counts = await db
+      .select({
+        platformAccountId: submissions.platformAccountId,
+        solvedCount: sql<number>`COUNT(DISTINCT ${submissions.problemId})::int`,
+      })
+      .from(submissions)
+      .where(
+        and(
+          inArray(submissions.platformAccountId, accountIds),
+          eq(submissions.verdict, "OK"),
+        ),
+      )
+      .groupBy(submissions.platformAccountId);
+    for (const row of counts) {
+      localByAccount.set(row.platformAccountId, Number(row.solvedCount));
+    }
+  }
+
+  const usersWithAccounts = new Set<string>();
+  for (const a of accounts) {
+    usersWithAccounts.add(a.userId);
+    const local = localByAccount.get(a.id) ?? 0;
+    const reported = a.reportedSolvedCount ?? 0;
+    totals.set(a.userId, (totals.get(a.userId) ?? 0) + Math.max(local, reported));
+  }
+
+  const missing = userIds.filter((id) => !usersWithAccounts.has(id));
+  if (missing.length > 0) {
+    const fallback = await db
+      .select({
+        userId: solves.userId,
+        total: count(),
+      })
+      .from(solves)
+      .where(inArray(solves.userId, missing))
+      .groupBy(solves.userId);
+    for (const row of fallback) {
+      totals.set(row.userId, Number(row.total ?? 0));
+    }
+  }
+
+  return totals;
+}

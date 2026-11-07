@@ -18,7 +18,7 @@ export type NavItem = {
 
 /** Bottom nav (mobile) destinations */
 export const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Home", icon: Home, match: ["/"], auth: "any" },
+  { href: "/", label: "Home", icon: Home, match: ["/", "/landing"], auth: "any" },
   {
     href: "/contests",
     label: "Contests",
@@ -58,7 +58,13 @@ export const WORKSPACE_NAV: NavItem[] = [
     match: ["/dashboard"],
     auth: "required",
   },
-  { href: "/", label: "Home", icon: Home, match: ["/"], auth: "any" },
+  {
+    href: "/home",
+    label: "Today",
+    icon: Home,
+    match: ["/home"],
+    auth: "required",
+  },
   {
     href: "/contests",
     label: "Contests",
@@ -94,7 +100,9 @@ export const DESKTOP_EXTRA: NavItem[] = [
 ];
 
 export function isActive(pathname: string, item: NavItem) {
-  if (item.href === "/") return pathname === "/";
+  if (item.href === "/") {
+    return pathname === "/" || pathname === "/landing";
+  }
   return item.match.some(
     (m) => pathname === m || (m !== "/" && pathname.startsWith(m)),
   );

@@ -9,6 +9,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { v2Api } from "@/v2/lib/api";
 import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import { siteHomeHref } from "@/v2/lib/site";
+import { BrandLockup, BrandMark } from "@/v2/components/Brand";
 import { cn } from "@/v2/lib/cn";
 
 const syne = Syne({
@@ -324,14 +325,13 @@ function AuthShell({
           <div className="auth-rise mx-auto w-full max-w-[400px]">
             <Link
               href={siteHomeHref(false)}
-              className="mb-6 inline-flex items-center gap-2.5 no-underline sm:mb-8 lg:hidden"
+              className="mb-6 inline-flex items-center no-underline sm:mb-8 lg:hidden"
+              aria-label="DevTrack home"
             >
-              <span className="flex size-8 items-center justify-center bg-[var(--auth-accent)] font-mono text-[11px] font-bold text-[var(--auth-accent-fg)]">
-                DT
-              </span>
-              <span className="auth-display text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--auth-fg)]">
-                DevTrack
-              </span>
+              <BrandLockup
+                size="md"
+                labelClassName="auth-display text-[var(--v2-text-base)] text-[var(--auth-fg)]"
+              />
             </Link>
 
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--auth-muted)]">
@@ -362,10 +362,12 @@ function AuthVisual({ mode }: { mode: "signin" | "signup" }) {
       <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-[var(--auth-ink)] via-[color-mix(in_srgb,var(--auth-ink)_55%,transparent)] to-transparent" />
 
       <div className="relative z-[2] flex flex-1 flex-col justify-between p-10 xl:p-12">
-        <Link href={siteHomeHref(false)} className="inline-flex items-center gap-2.5 no-underline">
-          <span className="flex size-8 items-center justify-center bg-[var(--auth-accent)] font-mono text-[11px] font-bold text-[var(--auth-accent-fg)]">
-            DT
-          </span>
+        <Link
+          href={siteHomeHref(false)}
+          className="inline-flex items-center gap-2.5 no-underline"
+          aria-label="DevTrack home"
+        >
+          <BrandMark size="md" />
           <span className="auth-display text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--auth-ink-fg)]">
             DevTrack
           </span>

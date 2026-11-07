@@ -3,8 +3,9 @@
  * Override social URLs with NEXT_PUBLIC_SOCIAL_* when you have real accounts.
  */
 
-export function siteHomeHref(signedIn: boolean) {
-  return signedIn ? "/landing" : "/";
+/** Brand / marketing home — always the public landing, even when signed in. */
+export function siteHomeHref(_signedIn?: boolean) {
+  return "/";
 }
 
 export function isMarketingHome(pathname: string) {

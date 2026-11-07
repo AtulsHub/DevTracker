@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -97,6 +98,24 @@ export function MobileAccountSheet({
 }) {
   const { theme, setTheme, resolved } = useTheme();
   const display = userName ?? userEmail ?? "Account";
+  const pathname = usePathname();
+  const pathWhenOpened = useRef<string | null>(null);
+  const pushedHistory = useRef(false);
+
+  // Close when the route changes underneath (link nav / soft navigate).
+  useEffect(() => {
+    if (!open) {
+      pathWhenOpened.current = null;
+      return;
+    }
+    if (pathWhenOpened.current == null) {
+      pathWhenOpened.current = pathname;
+      return;
+    }
+    if (pathname !== pathWhenOpened.current) {
+      onClose();
+    }
+  }, [pathname, open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,11 +125,46 @@ export function MobileAccountSheet({
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKey);
+
+    // So browser / gesture back dismisses the sheet instead of only changing the page under it.
+    try {
+      window.history.pushState({ v2AccountSheet: true }, "");
+      pushedHistory.current = true;
+    } catch {
+      pushedHistory.current = false;
+    }
+    function onPop() {
+      pushedHistory.current = false;
+      onClose();
+    }
+    window.addEventListener("popstate", onPop);
+
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
     };
   }, [open, onClose]);
+
+  /** Close without touching history (link navigation). */
+  function closeSheet() {
+    pushedHistory.current = false;
+    onClose();
+  }
+
+  /** Backdrop / X / Escape — prefer history.back so Android back matches. */
+  function dismiss() {
+    if (
+      pushedHistory.current &&
+      typeof window !== "undefined" &&
+      (window.history.state as { v2AccountSheet?: boolean } | null)?.v2AccountSheet
+    ) {
+      pushedHistory.current = false;
+      window.history.back();
+      return;
+    }
+    closeSheet();
+  }
 
   if (!open) return null;
 
@@ -120,7 +174,7 @@ export function MobileAccountSheet({
         type="button"
         aria-label="Close menu"
         className="absolute inset-0 bg-[color-mix(in_srgb,var(--v2-fg)_28%,transparent)]"
-        onClick={onClose}
+        onClick={dismiss}
       />
       <div
         role="dialog"
@@ -134,7 +188,7 @@ export function MobileAccountSheet({
           <button
             type="button"
             aria-label="Close"
-            onClick={onClose}
+            onClick={dismiss}
             className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)]"
           >
             <X className="size-5" />
@@ -181,17 +235,21 @@ export function MobileAccountSheet({
           {signedIn ? (
             <>
               {variant === "marketing" ? (
-                <SheetLink href="/dashboard" icon={LayoutDashboard} onClick={onClose}>
+                <SheetLink
+                  href="/dashboard"
+                  icon={LayoutDashboard}
+                  onClick={closeSheet}
+                >
                   Open app
                 </SheetLink>
               ) : null}
-              <SheetLink href="/profile" icon={UserRound} onClick={onClose}>
+              <SheetLink href="/profile" icon={UserRound} onClick={closeSheet}>
                 Edit profile
               </SheetLink>
-              <SheetLink href="/settings" icon={Settings} onClick={onClose}>
+              <SheetLink href="/settings" icon={Settings} onClick={closeSheet}>
                 Settings
               </SheetLink>
-              <SheetLink href="/landing" icon={LayoutTemplate} onClick={onClose}>
+              <SheetLink href="/landing" icon={LayoutTemplate} onClick={closeSheet}>
                 Landing page
               </SheetLink>
             </>
@@ -207,7 +265,7 @@ export function MobileAccountSheet({
               <Link
                 href="/sign-up"
                 onClick={onClose}
-                className="flex min-h-12 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline"
+                className="v2-btn-primary flex min-h-12 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] text-[var(--v2-text-sm)] font-semibold no-underline"
               >
                 Sign up
               </Link>
@@ -279,7 +337,7 @@ export function MobileAccountSheet({
             <button
               type="button"
               onClick={() => {
-                onClose();
+                closeSheet();
                 void signOut({ callbackUrl: "/" });
               }}
               className="flex min-h-12 w-full items-center gap-3 rounded-[var(--v2-radius-md)] px-3 text-left text-[var(--v2-text-sm)] font-semibold text-[var(--v2-danger)] hover:bg-[var(--v2-surface-hover)]"

@@ -18,6 +18,7 @@ import { UserAccountMenu } from "./UserAccountMenu";
 import { MobileAccountSheet } from "./MobileAccountSheet";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/v2/lib/cn";
+import { BrandLockup } from "@/v2/components/Brand";
 import {
   MARKETING_NAV,
   SITE_SOCIAL,
@@ -122,13 +123,12 @@ function GuestTopBar({
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex min-w-0 items-center gap-4 lg:gap-6">
-        <Link href={home} className="flex shrink-0 items-center gap-2.5 no-underline">
-          <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[10px] font-bold text-[var(--v2-on-primary)]">
-            DT
-          </span>
-          <span className="text-[var(--v2-text-sm)] font-semibold tracking-tight text-[var(--v2-fg)]">
-            DevTrack
-          </span>
+        <Link
+          href={home}
+          className="flex shrink-0 items-center no-underline"
+          aria-label="DevTrack home"
+        >
+          <BrandLockup size="sm" />
         </Link>
 
         <nav

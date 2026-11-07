@@ -9,6 +9,7 @@ import {
   type NavItem,
 } from "./nav";
 import { cn } from "@/v2/lib/cn";
+import { BrandLockup, BrandMark } from "@/v2/components/Brand";
 import { useTheme } from "./ThemeProvider";
 import { UserAccountMenu } from "./UserAccountMenu";
 import { siteHomeHref } from "@/v2/lib/site";
@@ -113,9 +114,10 @@ export function Sidebar({
       <aside className="sticky top-0 z-[var(--v2-z-nav)] hidden h-dvh w-[var(--v2-rail-w)] shrink-0 flex-col border-r border-[var(--v2-border)] bg-[var(--v2-bg-elevated)]/90 backdrop-blur-md md:flex lg:hidden">
         <Link
           href={siteHomeHref(signedIn)}
-          className="flex h-[var(--v2-topbar-h)] items-center justify-center font-mono text-sm font-bold text-[var(--v2-primary)] no-underline"
+          className="flex h-[var(--v2-topbar-h)] items-center justify-center no-underline"
+          aria-label="DevTrack home"
         >
-          DT
+          <BrandMark size="md" />
         </Link>
         <nav className="flex flex-1 flex-col items-center gap-1 px-2 py-2" aria-label="Main">
           {railItems.map((item) => (
@@ -139,14 +141,13 @@ export function Sidebar({
         <div className="flex h-[var(--v2-topbar-h)] items-center px-4">
           <Link
             href={siteHomeHref(signedIn)}
-            className="flex items-center gap-2.5 no-underline"
+            className="flex items-center no-underline"
+            aria-label="DevTrack home"
           >
-            <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[11px] font-bold text-[var(--v2-on-primary)]">
-              DT
-            </span>
-            <span className="text-[var(--v2-text-base)] font-semibold tracking-tight text-[var(--v2-fg)]">
-              DevTrack
-            </span>
+            <BrandLockup
+              size="sm"
+              labelClassName="text-[var(--v2-text-base)]"
+            />
           </Link>
         </div>
 

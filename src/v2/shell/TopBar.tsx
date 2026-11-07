@@ -9,8 +9,9 @@ import {
   MANAGEMENT_NAV,
   isActive,
 } from "./nav";
-import { siteHomeHref } from "@/v2/lib/site";
+import { isMarketingHome, siteHomeHref } from "@/v2/lib/site";
 import { cn } from "@/v2/lib/cn";
+import { BrandLockup } from "@/v2/components/Brand";
 import { NotificationBell } from "./NotificationBell";
 
 function titleFor(pathname: string) {
@@ -23,18 +24,19 @@ function titleFor(pathname: string) {
   if (pathname.startsWith("/sign-")) return "Account";
   if (pathname.startsWith("/u/")) return "Profile";
   if (pathname.startsWith("/onboarding")) return "Welcome";
+  if (pathname.startsWith("/home")) return "Today";
   return "DevTrack";
 }
 
 export function TopBar({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
-  const landingGuest = pathname === "/" && !signedIn;
+  const onLanding = isMarketingHome(pathname);
 
   return (
     <header
       className={cn(
         "v2-topbar sticky top-0 z-[var(--v2-z-nav)] flex h-[var(--v2-topbar-h)] items-center justify-between gap-3 px-4 md:px-6",
-        landingGuest
+        onLanding
           ? "border-b border-transparent bg-transparent"
           : "border-b border-[var(--v2-border)] bg-[color-mix(in_srgb,var(--v2-bg-elevated)_78%,transparent)] backdrop-blur-md",
       )}
@@ -43,20 +45,16 @@ export function TopBar({ signedIn }: { signedIn: boolean }) {
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href={siteHomeHref(signedIn)}
-          className="flex items-center gap-2 no-underline md:hidden"
+          className="flex items-center no-underline md:hidden"
+          aria-label="DevTrack home"
         >
-          <span className="flex size-7 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] font-mono text-[10px] font-bold text-[var(--v2-on-primary)]">
-            DT
-          </span>
-          <span className="text-[var(--v2-text-sm)] font-semibold tracking-tight text-[var(--v2-fg)]">
-            DevTrack
-          </span>
+          <BrandLockup size="sm" />
         </Link>
         <h1
           className={cn(
             "v2-topbar-title truncate text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg-muted)]",
             "hidden md:block",
-            landingGuest && "opacity-0",
+            onLanding && "opacity-0",
           )}
         >
           {titleFor(pathname)}

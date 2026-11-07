@@ -2,8 +2,8 @@
  * Server-side data loaders for v2 screens (uses existing Drizzle services).
  */
 import { db } from "@/server/db";
-import { users, platformAccounts, solves } from "@/server/db/schema";
-import { eq, count, desc, inArray } from "drizzle-orm";
+import { users, platformAccounts } from "@/server/db/schema";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import {
   countUpcomingContests,
   getUpcomingContests,
@@ -17,6 +17,7 @@ import {
   getAcceptedSolveDetails,
   getStreak,
   getTotalSolved,
+  getTotalSolvedByUserIds,
   getDailyActivity,
 } from "@/server/services/activity";
 import { getOverviewTargets } from "@/server/services/targets";
@@ -92,7 +93,12 @@ export async function loadFeaturedUsers(limit = 8) {
       headline: users.headline,
     })
     .from(users)
-    .where(eq(users.profileVisibility, "PUBLIC"))
+    .where(
+      and(
+        eq(users.profileVisibility, "PUBLIC"),
+        eq(users.discoverable, true),
+      ),
+    )
     .orderBy(desc(users.createdAt))
     .limit(Math.min(limit, 24));
 
@@ -100,8 +106,13 @@ export async function loadFeaturedUsers(limit = 8) {
 }
 
 export async function loadExploreUsers(limit = 24) {
+  const take = Math.min(limit, 48);
+  // Fetch a wider candidate set, then rank by the same solved totals as /u.
   const publicUsers = await db.query.users.findMany({
-    where: eq(users.profileVisibility, "PUBLIC"),
+    where: and(
+      eq(users.profileVisibility, "PUBLIC"),
+      eq(users.discoverable, true),
+    ),
     columns: {
       id: true,
       username: true,
@@ -113,13 +124,14 @@ export async function loadExploreUsers(limit = 24) {
       skills: true,
       profileVisibility: true,
     },
-    limit: Math.min(limit, 48),
+    orderBy: [desc(users.createdAt)],
+    limit: Math.max(take, 120),
   });
 
   if (publicUsers.length === 0) return [];
 
   const ids = publicUsers.map((u) => u.id);
-  const [accounts, solvedRows] = await Promise.all([
+  const [accounts, solvedByUser] = await Promise.all([
     db.query.platformAccounts.findMany({
       where: inArray(platformAccounts.userId, ids),
       columns: {
@@ -128,14 +140,7 @@ export async function loadExploreUsers(limit = 24) {
         currentRating: true,
       },
     }),
-    db
-      .select({
-        userId: solves.userId,
-        total: count(),
-      })
-      .from(solves)
-      .where(inArray(solves.userId, ids))
-      .groupBy(solves.userId),
+    getTotalSolvedByUserIds(ids),
   ]);
 
   const accountsByUser = new Map<string, typeof accounts>();
@@ -144,14 +149,12 @@ export async function loadExploreUsers(limit = 24) {
     list.push(a);
     accountsByUser.set(a.userId, list);
   }
-  const solvedByUser = new Map(
-    solvedRows.map((r) => [r.userId, Number(r.total ?? 0)]),
-  );
 
   const result = [];
   for (const u of publicUsers) {
     if (!u.username) continue;
     const userAccounts = accountsByUser.get(u.id) ?? [];
+    // Match public profile “Best rating” (highest currentRating across platforms).
     const maxRating = userAccounts.reduce(
       (best, a) => Math.max(best, a.currentRating ?? 0),
       0,
@@ -170,7 +173,7 @@ export async function loadExploreUsers(limit = 24) {
       maxRating: maxRating || null,
     });
   }
-  return result.sort((a, b) => b.totalSolved - a.totalSolved);
+  return result.sort((a, b) => b.totalSolved - a.totalSolved).slice(0, take);
 }
 
 export async function loadPublicProfile(
@@ -201,6 +204,7 @@ export async function loadPublicProfile(
       certifications: true,
       customLinks: true,
       profileVisibility: true,
+      openToWork: true,
     },
   });
   if (!owner || !owner.username) return { notFound: true as const };
@@ -244,6 +248,7 @@ export async function loadPublicProfile(
     projects: owner.projects ?? [],
     certifications: owner.certifications ?? [],
     customLinks: owner.customLinks ?? [],
+    openToWork: owner.openToWork,
     platforms,
     recent,
     totalSolved,
