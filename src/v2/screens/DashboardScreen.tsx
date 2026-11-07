@@ -193,15 +193,20 @@ function DashboardScreenInner({
     </div>
   );
 
+  const recentPreview = useMemo(
+    () => data.recent.slice(0, 5),
+    [data.recent],
+  );
+
   const recentGrouped = useMemo(() => {
     if (!groupRecent) return null;
     const map = new Map<string, RecentSolve[]>();
-    for (const s of data.recent) {
+    for (const s of recentPreview) {
       if (!map.has(s.platform)) map.set(s.platform, []);
       map.get(s.platform)!.push(s);
     }
     return [...map.entries()];
-  }, [data.recent, groupRecent]);
+  }, [recentPreview, groupRecent]);
 
   const heatmapPeriod =
     yearOverride != null ? String(yearOverride) : filtersApi.window.label;
@@ -579,7 +584,7 @@ function DashboardScreenInner({
                       </Button>
                     }
                   />
-                ) : data.recent.length === 0 ? (
+                ) : recentPreview.length === 0 ? (
                   <EmptyState
                     title="No accepted solves in this period"
                     description="Nothing matched the current filters."
@@ -603,7 +608,7 @@ function DashboardScreenInner({
                     ))}
                   </div>
                 ) : (
-                  <SubmissionList items={data.recent} showVerdict={false} />
+                  <SubmissionList items={recentPreview} showVerdict={false} />
                 )}
               </CardBody>
             </Card>

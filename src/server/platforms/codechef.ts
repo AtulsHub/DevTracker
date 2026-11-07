@@ -55,7 +55,24 @@ function parseProfile(html: string) {
   const rankMatch = html.match(/global rank\s*(\d+)/i);
   const globalRank = rankMatch ? Number(rankMatch[1]) : undefined;
 
-  return { currentRating, maxRating, globalRank };
+  // Profile page lists "Total Problems Solved: N" (practice + contests).
+  // Submission history isn't publicly scrapable, so this feeds reportedSolvedCount.
+  const totalSolvedMatch = html.match(/Total Problems Solved:\s*(\d+)/i);
+  let solvedCount = totalSolvedMatch
+    ? Number(totalSolvedMatch[1])
+    : undefined;
+
+  if (solvedCount == null || !Number.isFinite(solvedCount)) {
+    const codes = new Set<string>();
+    for (const m of html.matchAll(
+      /href="https:\/\/www\.codechef\.com\/(?:[^"/]+\/)?problems\/([A-Z0-9_]+)"/gi,
+    )) {
+      if (m[1]) codes.add(m[1].toUpperCase());
+    }
+    if (codes.size > 0) solvedCount = codes.size;
+  }
+
+  return { currentRating, maxRating, globalRank, solvedCount };
 }
 
 interface CcContestRow {
@@ -100,11 +117,13 @@ export const codechefAdapter: PlatformAdapter = {
       currentRating: p.currentRating,
       maxRating: p.maxRating,
       rank: p.globalRank !== undefined ? String(p.globalRank) : undefined,
+      solvedCount: p.solvedCount,
     };
   },
 
   async fetchSubmissions(): Promise<NormalizedSubmission[]> {
-    // Public submission history is not stably available without scraping/auth.
+    // Public submission history isn't stably available without auth.
+    // Solved totals come from fetchProfile → reportedSolvedCount.
     return [];
   },
 
