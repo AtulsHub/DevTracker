@@ -41,10 +41,10 @@
   --land-heat: var(--v2-accent);
 }
 
-/* Do NOT set `a { color: inherit }` — it overrides CTA label colors. */
+/* Beat global `a { color: inherit }` so CTA labels stay on-primary. */
 .landing a.landing-cta {
   background: var(--land-accent);
-  color: var(--land-accent-fg);
+  color: var(--land-accent-fg) !important;
 }
 
 .landing a.landing-cta:hover {

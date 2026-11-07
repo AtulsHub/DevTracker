@@ -27,7 +27,7 @@ export const MARKETING_NAV: MarketingNavItem[] = [
 ];
 
 export type SocialLink = {
-  id: "github" | "x" | "discord" | "email";
+  id: "github" | "linkedin" | "discord" | "email";
   label: string;
   href: string;
 };
@@ -39,7 +39,7 @@ function envUrl(key: string, fallback: string) {
 }
 
 function contactEmailHref() {
-  const raw = envUrl("NEXT_PUBLIC_SOCIAL_EMAIL", "hello@devtrack.app");
+  const raw = envUrl("NEXT_PUBLIC_SOCIAL_EMAIL", "atuldevac@gmail.com");
   return raw.startsWith("mailto:") ? raw : `mailto:${raw}`;
 }
 
@@ -48,21 +48,31 @@ export const SITE_SOCIAL: SocialLink[] = [
   {
     id: "github",
     label: "GitHub",
-    href: envUrl("NEXT_PUBLIC_SOCIAL_GITHUB", "https://github.com"),
+    href: envUrl(
+      "NEXT_PUBLIC_SOCIAL_GITHUB",
+      "https://github.com/AtulsHub",
+    ),
   },
   {
-    id: "x",
-    label: "X",
-    href: envUrl("NEXT_PUBLIC_SOCIAL_X", "https://x.com"),
+    id: "linkedin",
+    label: "LinkedIn",
+    href: envUrl(
+      "NEXT_PUBLIC_SOCIAL_LINKEDIN",
+      "https://www.linkedin.com/in/atul-sharma-82b0242a1",
+    ),
   },
   {
     id: "discord",
     label: "Discord",
-    href: envUrl("NEXT_PUBLIC_SOCIAL_DISCORD", "https://discord.com"),
+    // Prefer a profile/invite URL via env; default opens Discord with the handle in the fragment for copy.
+    href: envUrl(
+      "NEXT_PUBLIC_SOCIAL_DISCORD",
+      "https://discord.com/users/1176014869909213234",
+    ),
   },
   {
     id: "email",
-    label: "Gmail",
+    label: "Email",
     href: contactEmailHref(),
   },
 ];

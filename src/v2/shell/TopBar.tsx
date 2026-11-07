@@ -72,7 +72,7 @@ export function TopBar({ signedIn }: { signedIn: boolean }) {
         {!signedIn ? (
           <Link
             href="/sign-in"
-            className="hidden min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold text-[var(--v2-on-primary)] no-underline transition-colors hover:bg-[var(--v2-primary-hover)] sm:inline-flex"
+            className="v2-btn-primary hidden min-h-8 items-center rounded-[var(--v2-radius-md)] bg-[var(--v2-primary)] px-3 text-[var(--v2-text-sm)] font-semibold no-underline transition-colors hover:bg-[var(--v2-primary-hover)] sm:inline-flex"
           >
             Sign in
           </Link>
