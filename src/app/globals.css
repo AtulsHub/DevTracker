@@ -71,6 +71,120 @@
   animation: v2-loader-spin 0.85s linear infinite;
 }
 
+/* Leaderboard podium — top-3 presence */
+@keyframes lb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lb-trophy-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(-4deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.12) rotate(4deg);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, #f59e0b 55%, transparent));
+  }
+}
+
+@keyframes lb-trophy-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes lb-sheen {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes lb-score-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    text-shadow: 0 0 14px color-mix(in srgb, #f59e0b 45%, transparent);
+  }
+}
+
+.lb-rise {
+  animation: lb-rise 0.55s var(--v2-ease) both;
+}
+
+.lb-trophy-pulse {
+  animation: lb-trophy-pulse 2.4s ease-in-out infinite;
+}
+
+.lb-trophy-float {
+  animation: lb-trophy-float 2.8s ease-in-out infinite;
+}
+
+.lb-sheen {
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    color-mix(in srgb, white 55%, transparent) 50%,
+    transparent 70%
+  );
+  animation: lb-sheen 3.6s ease-in-out infinite;
+}
+
+.lb-sheen-gold {
+  animation-delay: 0.2s;
+}
+.lb-sheen-silver {
+  animation-delay: 0.55s;
+}
+.lb-sheen-bronze {
+  animation-delay: 0.9s;
+}
+
+.lb-avatar-ring-gold {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #f59e0b 75%, transparent);
+}
+.lb-avatar-ring-silver {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #94a3b8 80%, transparent);
+}
+.lb-avatar-ring-bronze {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #b45309 70%, transparent);
+}
+
+.lb-score-glow {
+  animation: lb-score-glow 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-rise,
+  .lb-trophy-pulse,
+  .lb-trophy-float,
+  .lb-sheen,
+  .lb-score-glow {
+    animation: none !important;
+  }
+}
+
 /* Theme-aware wordmark (assets include baked backgrounds that match chrome). */
 .brand-logo-light {
   display: block;

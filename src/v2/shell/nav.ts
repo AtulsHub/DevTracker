@@ -2,6 +2,7 @@ import {
   Home,
   Calendar,
   Compass,
+  Trophy,
   Users,
   User,
   LayoutDashboard,
@@ -77,6 +78,13 @@ export const WORKSPACE_NAV: NavItem[] = [
     label: "Explore",
     icon: Compass,
     match: ["/explore", "/u/"],
+    auth: "any",
+  },
+  {
+    href: "/leaderboard",
+    label: "Leaderboard",
+    icon: Trophy,
+    match: ["/leaderboard"],
     auth: "any",
   },
   {

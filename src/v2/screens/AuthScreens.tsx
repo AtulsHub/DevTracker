@@ -68,6 +68,17 @@ export function SignInScreen() {
         setError("Verify your email before signing in.");
         return;
       }
+      // Auth.js often collapses custom codes to CredentialsSignin — check once.
+      try {
+        const status = await v2Api.credentialsStatus({ email, password });
+        if (status.needsVerification) {
+          setNeedsVerify(true);
+          setError("Verify your email before signing in.");
+          return;
+        }
+      } catch {
+        // fall through to generic error
+      }
       setError("Invalid email or password");
       return;
     }

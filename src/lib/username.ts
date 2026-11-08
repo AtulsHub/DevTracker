@@ -24,6 +24,12 @@ const RESERVED = new Set([
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
+/** Auth.js DB default: `u_` + 12 hex chars — treat as unset. */
+export function isPlaceholderUsername(username: string | null | undefined) {
+  if (!username) return true;
+  return /^u_[a-f0-9]{12}$/i.test(username);
+}
+
 export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();
 }

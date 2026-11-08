@@ -24,6 +24,7 @@ export const MARKETING_NAV: MarketingNavItem[] = [
   { href: "/contests", label: "Contests", match: ["/contests"] },
   { href: "/explore", label: "Explore", match: ["/explore", "/u/"] },
   { href: "/teams", label: "Teams", match: ["/teams"] },
+  { href: "/leaderboard", label: "Leaderboard", match: ["/leaderboard"] },
 ];
 
 export type SocialLink = {
@@ -80,6 +81,7 @@ export const SITE_SOCIAL: SocialLink[] = [
 export const SITE_FOOTER_LINKS = [
   { href: "/contests", label: "Contests" },
   { href: "/explore", label: "Explore" },
+  { href: "/leaderboard", label: "Leaderboard" },
   { href: "/teams", label: "Teams" },
   { href: "/sign-in", label: "Sign in" },
   { href: "/sign-up", label: "Sign up" },

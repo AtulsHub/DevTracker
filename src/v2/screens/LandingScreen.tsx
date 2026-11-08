@@ -5,6 +5,8 @@ import { LINKABLE_PLATFORMS, PLATFORMS } from "@/v2/design/platforms";
 import type { ContestDto } from "@/v2/lib/api";
 import { MARKETING_NAV, SITE_SOCIAL } from "@/v2/lib/site";
 import { BrandLogo } from "@/v2/components/Brand";
+import { LeaderboardBoard } from "@/v2/components/LeaderboardBoard";
+import type { LeaderboardPerson } from "@/v2/lib/queries";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -18,25 +20,16 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-type Featured = {
-  username: string;
-  displayName: string | null;
-  totalSolved?: number;
-  platforms?: string[];
-  headline?: string | null;
-};
-
 export function LandingScreen({
   contests,
-  featured,
+  leaderboard,
   signedIn = false,
 }: {
   contests: ContestDto[];
-  featured: Featured[];
+  leaderboard: LeaderboardPerson[];
   signedIn?: boolean;
 }) {
   const next = contests[0];
-  const people = featured.slice(0, 5);
 
   return (
     <div className={`${syne.variable} ${dmSans.variable} landing`}>
@@ -166,68 +159,38 @@ export function LandingScreen({
         )}
       </section>
 
-      {/* ── People ── */}
+      {/* ── Leaderboard ── */}
       <section className="border-t border-[var(--land-line)] bg-[var(--land-bg-alt)]">
         <div className="mx-auto max-w-[var(--v2-content-max)] px-5 py-16 sm:px-8 sm:py-24">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--land-muted)]">
-                In the arena
+                Leaderboard
               </p>
-              <h2 className="mt-3 max-w-md landing-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.1] tracking-tight text-[var(--land-fg)]">
-                Builders already on the board.
+              <h2 className="mt-3 max-w-lg landing-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.1] tracking-tight text-[var(--land-fg)]">
+                Ranked by rating — and by grind.
               </h2>
+              <p className="mt-3 max-w-md text-[var(--v2-text-sm)] text-[var(--land-muted)]">
+                Switch boards for best rating, total solved, or a single
+                platform.
+              </p>
             </div>
             <Link
-              href="/explore"
+              href="/leaderboard"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--land-fg)] no-underline underline-offset-4 hover:underline"
             >
-              Explore everyone
+              Full leaderboard
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
 
-          {people.length === 0 ? (
-            <p className="mt-10 max-w-md text-[var(--land-muted)]">
-              Be first on the public board — create an account and open your
-              profile.
-            </p>
-          ) : (
-            <ul className="mt-12 divide-y divide-[var(--land-line)] border-y border-[var(--land-line)]">
-              {people.map((u, i) => (
-                <li key={u.username}>
-                  <Link
-                    href={`/u/${u.username}`}
-                    className="group flex flex-wrap items-center justify-between gap-4 py-5 no-underline transition-colors hover:bg-[var(--land-bg)]/70 sm:py-6"
-                  >
-                    <div className="flex min-w-0 items-baseline gap-4 sm:gap-8">
-                      <span className="font-mono text-xs text-[var(--land-muted)]">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate landing-display text-xl font-semibold tracking-tight text-[var(--land-fg)] sm:text-2xl">
-                          {u.displayName ?? u.username}
-                        </p>
-                        <p className="mt-0.5 font-mono text-xs text-[var(--land-muted)]">
-                          @{u.username}
-                          {u.headline ? ` · ${u.headline}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 pl-10 sm:pl-0">
-                      <span className="font-mono text-sm tabular-nums text-[var(--land-fg)]">
-                        {(u.totalSolved ?? 0).toLocaleString()}
-                        <span className="ml-1.5 text-[var(--land-muted)]">
-                          solved
-                        </span>
-                      </span>
-                      <ArrowUpRight className="size-4 text-[var(--land-muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--land-fg)]" />
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="mt-10">
+            <LeaderboardBoard
+              people={leaderboard}
+              limit={8}
+              variant="landing"
+            />
+          </div>
         </div>
       </section>
 

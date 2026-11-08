@@ -63,14 +63,17 @@ export async function POST(req: Request) {
     const username = usernameCheck.username;
     const { email, password } = parsed.data;
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check for existing user (email or username)
     const existing = await db.query.users.findFirst({
-      where: or(eq(users.email, email), eq(users.username, username)),
+      where: or(eq(users.email, normalizedEmail), eq(users.username, username)),
       columns: { email: true, username: true },
     });
 
     if (existing) {
-      const field = existing.email === email ? "email" : "username";
+      const field =
+        existing.email === normalizedEmail ? "email" : "username";
       return NextResponse.json(
         { error: { code: "CONFLICT", message: `An account with this ${field} already exists.` } },
         { status: 409 }
@@ -79,8 +82,6 @@ export async function POST(req: Request) {
 
     // Hash password (bcrypt, 12 rounds)
     const passwordHash = await bcrypt.hash(password, 12);
-
-    const normalizedEmail = email.toLowerCase().trim();
 
     // Insert user — emailVerified stays null until they confirm via Resend.
     await db.insert(users).values({

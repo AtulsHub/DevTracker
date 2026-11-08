@@ -11,6 +11,7 @@ import {
   Menu,
   Moon,
   Sun,
+  Trophy,
   Users,
 } from "lucide-react";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
@@ -97,6 +98,7 @@ const MOBILE_ICONS: Record<string, typeof Home> = {
   home: Home,
   "/contests": Calendar,
   "/explore": Compass,
+  "/leaderboard": Trophy,
   "/teams": Users,
 };
 
@@ -189,6 +191,31 @@ function GuestTopBar({
             );
           })}
         </div>
+
+        <Link
+          href="/leaderboard"
+          aria-label="Leaderboard"
+          aria-current={
+            pathname === "/leaderboard" || pathname.startsWith("/leaderboard/")
+              ? "page"
+              : undefined
+          }
+          className={cn(
+            "flex size-10 items-center justify-center rounded-[var(--v2-radius-md)] transition-colors hover:bg-[var(--v2-surface-hover)] sm:size-9",
+            pathname === "/leaderboard" || pathname.startsWith("/leaderboard/")
+              ? "text-[var(--v2-primary)]"
+              : "text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)]",
+          )}
+        >
+          <Trophy
+            className="size-4"
+            strokeWidth={
+              pathname === "/leaderboard" || pathname.startsWith("/leaderboard/")
+                ? 2.25
+                : 1.75
+            }
+          />
+        </Link>
 
         <button
           type="button"

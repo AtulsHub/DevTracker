@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@/server/auth";
 import { LandingScreen } from "@/v2/screens/LandingScreen";
-import { loadFeaturedUsers, loadUpcomingContests } from "@/v2/lib/queries";
+import { loadLeaderboardPeople, loadUpcomingContests } from "@/v2/lib/queries";
 
 export const metadata: Metadata = {
   title: "DevTrack — DSA progress across every platform",
@@ -13,9 +13,9 @@ export const dynamic = "force-dynamic";
 
 export default async function RootPage() {
   const session = await auth();
-  const [contests, featured] = await Promise.all([
+  const [contests, leaderboard] = await Promise.all([
     loadUpcomingContests(21),
-    loadFeaturedUsers(8),
+    loadLeaderboardPeople(48),
   ]);
   const serialized = contests.map((c) => ({
     ...c,
@@ -26,7 +26,7 @@ export default async function RootPage() {
   return (
     <LandingScreen
       contests={serialized}
-      featured={featured}
+      leaderboard={leaderboard}
       signedIn={!!session?.user?.id}
     />
   );

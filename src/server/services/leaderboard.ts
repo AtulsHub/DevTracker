@@ -1,5 +1,6 @@
 /**
- * Team leaderboard calculation from daily_activity rollups.
+ * Team leaderboard calculation from daily_activity rollups
+ * (period ranges) and profile totals (all-time).
  */
 import { db } from "@/server/db";
 import { dailyActivity, teamMembers, users } from "@/server/db/schema";
@@ -14,6 +15,7 @@ import {
   formatISO,
   subDays,
 } from "date-fns";
+import { getTotalSolvedByUserIds } from "@/server/services/activity";
 
 export type LeaderboardRange = "daily" | "weekly" | "monthly" | "all-time";
 
@@ -57,13 +59,46 @@ function rangeBounds(range: LeaderboardRange): { start: string; end: string } | 
 
 /**
  * Get team leaderboard for a range.
+ * all-time uses the same profile totals as Explore / public profiles.
  */
 export async function getTeamLeaderboard(
   teamId: string,
   range: LeaderboardRange = "weekly",
 ): Promise<LeaderboardEntry[]> {
-  const bounds = rangeBounds(range);
+  if (range === "all-time") {
+    const members = await db
+      .select({
+        userId: teamMembers.userId,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(teamMembers)
+      .innerJoin(users, eq(users.id, teamMembers.userId))
+      .where(
+        and(eq(teamMembers.teamId, teamId), eq(teamMembers.status, "ACTIVE")),
+      );
 
+    if (members.length === 0) return [];
+
+    const totals = await getTotalSolvedByUserIds(members.map((m) => m.userId));
+    return members
+      .map((m) => ({
+        userId: m.userId,
+        username: m.username,
+        displayName: m.displayName,
+        avatarUrl: m.avatarUrl,
+        totalSolved: totals.get(m.userId) ?? 0,
+        rank: 0,
+      }))
+      .sort((a, b) => {
+        if (b.totalSolved !== a.totalSolved) return b.totalSolved - a.totalSolved;
+        return a.username.localeCompare(b.username);
+      })
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+  }
+
+  const bounds = rangeBounds(range);
   const conditions = [
     eq(teamMembers.teamId, teamId),
     eq(teamMembers.status, "ACTIVE"),

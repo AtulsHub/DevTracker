@@ -146,6 +146,11 @@ export const v2Api = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  credentialsStatus: (body: { email: string; password: string }) =>
+    api<{ ok: boolean; needsVerification?: boolean }>(
+      "/api/auth/credentials-status",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
   requestJoin: (slug: string) =>
     api(`/api/teams/${slug}/members`, {
       method: "POST",

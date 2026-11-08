@@ -21,6 +21,7 @@ import {
   authSessions,
   authVerificationTokens,
 } from "@/server/db/auth-tables";
+import { isPlaceholderUsername } from "@/lib/username";
 
 class EmailNotVerified extends CredentialsSignin {
   code = "email_not_verified";
@@ -140,21 +141,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         updates.emailVerified = new Date();
       }
 
-      if (!existing.username) {
+      // Column default is `u_[hex]` — treat placeholders as unset.
+      if (isPlaceholderUsername(existing.username)) {
         const base =
           (user.email?.split("@")[0] ?? user.name ?? "user")
             .toLowerCase()
             .replace(/[^a-z0-9_]/g, "")
-            .slice(0, 24) || "user";
+            .slice(0, 16) || "user";
 
-        let candidate = base;
+        let candidate = base.length >= 3 ? base : `user${base}`;
         for (let i = 0; i < 8; i++) {
           const clash = await db.query.users.findFirst({
             where: eq(users.username, candidate),
             columns: { id: true },
           });
           if (!clash) break;
-          candidate = `${base}${Math.floor(Math.random() * 9000 + 1000)}`;
+          candidate = `${base.slice(0, 12)}${Math.floor(Math.random() * 9000 + 1000)}`;
         }
         updates.username = candidate;
         updates.displayName =

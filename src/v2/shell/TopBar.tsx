@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search } from "lucide-react";
+import { Trophy } from "lucide-react";
 import {
   PRIMARY_NAV,
   WORKSPACE_NAV,
@@ -25,12 +25,15 @@ function titleFor(pathname: string) {
   if (pathname.startsWith("/u/")) return "Profile";
   if (pathname.startsWith("/onboarding")) return "Welcome";
   if (pathname.startsWith("/home")) return "Today";
+  if (pathname.startsWith("/leaderboard")) return "Leaderboard";
   return "DevTrack";
 }
 
 export function TopBar({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
   const onLanding = isMarketingHome(pathname);
+  const onLeaderboard =
+    pathname === "/leaderboard" || pathname.startsWith("/leaderboard/");
 
   return (
     <header
@@ -62,11 +65,17 @@ export function TopBar({ signedIn }: { signedIn: boolean }) {
       </div>
       <div className="flex items-center gap-1.5">
         <Link
-          href="/explore"
-          aria-label="Search explorers"
-          className="flex size-9 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-muted)] transition-colors duration-[var(--v2-duration)] hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
+          href="/leaderboard"
+          aria-label="Leaderboard"
+          aria-current={onLeaderboard ? "page" : undefined}
+          className={cn(
+            "flex size-9 items-center justify-center rounded-[var(--v2-radius-md)] transition-colors duration-[var(--v2-duration)] hover:bg-[var(--v2-surface-hover)]",
+            onLeaderboard
+              ? "text-[var(--v2-primary)]"
+              : "text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)]",
+          )}
         >
-          <Search className="size-4" />
+          <Trophy className="size-4" strokeWidth={onLeaderboard ? 2.25 : 1.75} />
         </Link>
         {signedIn ? <NotificationBell /> : null}
         {!signedIn ? (
