@@ -1,0 +1,227 @@
+/* Admin console — ops control-room surface (scoped) */
+.admin-console {
+  --admin-ink: color-mix(in srgb, var(--v2-fg) 92%, #0a1628);
+  --admin-panel: color-mix(in srgb, var(--v2-bg-elevated) 88%, #0d1b2a);
+  --admin-line: color-mix(in srgb, var(--v2-border) 70%, #2dd4bf);
+  --admin-teal: #0d9488;
+  --admin-teal-soft: color-mix(in srgb, #14b8a6 18%, transparent);
+  --admin-amber: #d97706;
+  --admin-amber-soft: color-mix(in srgb, #f59e0b 16%, transparent);
+  --admin-rose: #e11d48;
+  --admin-rose-soft: color-mix(in srgb, #f43f5e 14%, transparent);
+  --admin-grid:
+    linear-gradient(
+      color-mix(in srgb, var(--admin-teal) 8%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--admin-teal) 8%, transparent) 1px,
+      transparent 1px
+    );
+}
+
+.admin-console {
+  position: relative;
+  isolation: isolate;
+}
+
+.admin-console::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.45;
+  background-image: var(--admin-grid);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
+}
+
+.admin-console > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-hero {
+  overflow: hidden;
+  border-radius: var(--v2-radius-xl);
+  border: 1px solid var(--admin-line);
+  background:
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--admin-teal) 16%, var(--admin-panel)) 0%,
+      var(--admin-panel) 42%,
+      color-mix(in srgb, var(--admin-amber) 10%, var(--admin-panel)) 100%
+    );
+  box-shadow: var(--v2-shadow-sm);
+}
+
+.admin-hero::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: auto -10% -40% auto;
+  width: min(420px, 70vw);
+  height: min(420px, 70vw);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--admin-teal) 28%, transparent),
+    transparent 68%
+  );
+  animation: admin-pulse 7s ease-in-out infinite;
+}
+
+@keyframes admin-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes admin-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-in {
+  animation: admin-in 0.45s var(--v2-ease) both;
+}
+
+.admin-in-delay-1 {
+  animation-delay: 0.05s;
+}
+.admin-in-delay-2 {
+  animation-delay: 0.1s;
+}
+.admin-in-delay-3 {
+  animation-delay: 0.15s;
+}
+
+.admin-metric {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--v2-duration) var(--v2-ease),
+    border-color var(--v2-duration) var(--v2-ease),
+    box-shadow var(--v2-duration) var(--v2-ease);
+}
+
+.admin-metric:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--admin-teal) 45%, var(--v2-border));
+  box-shadow: var(--v2-shadow-md);
+}
+
+.admin-metric::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--admin-accent, var(--admin-teal));
+}
+
+.admin-nav-rail {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--v2-border);
+  background: color-mix(in srgb, var(--v2-bg-elevated) 92%, transparent);
+  backdrop-filter: blur(8px);
+  scrollbar-width: none;
+}
+
+.admin-nav-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.admin-nav-item[data-active="true"] {
+  color: var(--v2-fg);
+  background: color-mix(in srgb, var(--admin-teal) 16%, var(--v2-bg-muted));
+}
+
+.admin-row:hover {
+  background: color-mix(in srgb, var(--admin-teal) 6%, transparent);
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-status::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.admin-status-ok {
+  color: var(--admin-teal);
+  background: var(--admin-teal-soft);
+}
+
+.admin-status-warn {
+  color: var(--admin-amber);
+  background: var(--admin-amber-soft);
+}
+
+.admin-status-bad {
+  color: var(--admin-rose);
+  background: var(--admin-rose-soft);
+}
+
+.admin-status-muted {
+  color: var(--v2-fg-muted);
+  background: var(--v2-bg-muted);
+}
+
+.admin-skeleton {
+  border-radius: var(--v2-radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--v2-bg-muted) 0%,
+    color-mix(in srgb, var(--v2-bg-muted) 40%, var(--v2-bg-elevated)) 50%,
+    var(--v2-bg-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes admin-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

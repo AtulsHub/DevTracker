@@ -27,7 +27,7 @@ const LINKS: {
 export function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav className="mb-6 flex flex-wrap gap-1 border-b border-[var(--v2-border)] pb-3">
+    <nav className="admin-nav-rail" aria-label="Admin sections">
       {LINKS.map((link) => {
         const active = link.exact
           ? pathname === link.href
@@ -37,14 +37,15 @@ export function AdminNav() {
           <Link
             key={link.href}
             href={link.href}
+            data-active={active}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[var(--v2-radius-md)] px-2.5 py-1.5 text-[var(--v2-text-sm)] font-medium no-underline transition-colors",
+              "admin-nav-item inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[var(--v2-text-sm)] font-medium no-underline transition-colors",
               active
-                ? "bg-[var(--v2-bg-muted)] text-[var(--v2-fg)]"
+                ? "text-[var(--v2-fg)]"
                 : "text-[var(--v2-fg-muted)] hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]",
             )}
           >
-            <Icon className="size-3.5" aria-hidden />
+            <Icon className="size-3.5 shrink-0" aria-hidden />
             {link.label}
           </Link>
         );

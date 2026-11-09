@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { AdminNav } from "@/v2/components/admin/AdminNav";
-import { PageHeader } from "@/v2/components/PageHeader";
+import { Search, Trash2 } from "lucide-react";
+import {
+  AdminEmpty,
+  AdminError,
+  AdminShell,
+  relativeTime,
+} from "@/v2/components/admin/AdminShell";
 import { Card, CardBody } from "@/v2/components/Card";
 import { Button } from "@/v2/components/Button";
-import { Input } from "@/v2/components/Input";
 import { api } from "@/v2/lib/api";
 import { useConfirm } from "@/v2/feedback/useConfirm";
 
@@ -24,6 +28,7 @@ export function AdminTeamsScreen() {
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [loaded, setLoaded] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   function load(query = q) {
@@ -34,8 +39,10 @@ export function AdminTeamsScreen() {
           `/api/admin/teams?q=${encodeURIComponent(query)}`,
         );
         setTeams(res.teams);
+        setLoaded(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load");
+        setLoaded(true);
       }
     });
   }
@@ -64,72 +71,98 @@ export function AdminTeamsScreen() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
-      <PageHeader title="Teams" />
-      <AdminNav />
-      {error ? (
-        <p className="mb-4 text-[var(--v2-text-sm)] text-[var(--v2-danger)]">
-          {error}
-        </p>
-      ) : null}
+    <AdminShell title="Teams">
+      <AdminError message={error} />
 
       <form
-        className="mb-4 flex flex-wrap gap-2"
+        className="mb-4"
         onSubmit={(e) => {
           e.preventDefault();
           load(q);
         }}
       >
-        <div className="min-w-[12rem] flex-1">
-          <Input
-            label="Search"
+        <label className="relative block">
+          <span className="sr-only">Search teams</span>
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--v2-fg-subtle)]"
+            aria-hidden
+          />
+          <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="name or slug"
+            placeholder="Search name or slug"
+            className="min-h-11 w-full rounded-full border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] py-2 pl-10 pr-24 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--admin-teal)]"
           />
-        </div>
-        <Button size="sm" className="self-end" loading={pending} type="submit">
-          Search
-        </Button>
+          <Button
+            size="sm"
+            type="submit"
+            loading={pending}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full"
+          >
+            Search
+          </Button>
+        </label>
       </form>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardBody className="divide-y divide-[var(--v2-border-subtle)] p-0">
-          {teams.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-              No teams found
-            </p>
+          {!loaded ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="admin-skeleton h-14" />
+              ))}
+            </div>
+          ) : teams.length === 0 ? (
+            <AdminEmpty>No teams found</AdminEmpty>
           ) : (
             teams.map((t) => (
               <div
                 key={t.id}
-                className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="admin-row flex flex-col gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <Link
-                    href={`/teams/${t.slug}`}
-                    className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)] no-underline hover:text-[var(--v2-primary)]"
-                  >
-                    {t.name}
-                  </Link>
-                  <p className="text-[11px] text-[var(--v2-fg-subtle)]">
-                    /{t.slug} · {t.visibility.toLowerCase()}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/teams/${t.slug}`}
+                      className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)] no-underline hover:text-[var(--admin-teal)]"
+                    >
+                      {t.name}
+                    </Link>
+                    <span
+                      className={
+                        t.visibility === "PUBLIC"
+                          ? "admin-status admin-status-ok"
+                          : t.visibility === "SECRET"
+                            ? "admin-status admin-status-bad"
+                            : "admin-status admin-status-warn"
+                      }
+                    >
+                      {t.visibility.toLowerCase()}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-[var(--v2-fg-subtle)]">
+                    /{t.slug}
+                    <span className="mx-1.5 opacity-40">·</span>
+                    <span title={new Date(t.createdAt).toLocaleString()}>
+                      {relativeTime(t.createdAt)}
+                    </span>
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  loading={pending}
+                <button
+                  type="button"
+                  disabled={pending}
                   onClick={() => void remove(t)}
+                  className="inline-flex min-h-8 items-center gap-1.5 self-start rounded-full border border-[var(--admin-rose)]/30 px-2.5 text-[11px] font-semibold text-[var(--admin-rose)] transition-colors hover:bg-[var(--admin-rose-soft)] disabled:opacity-50"
                 >
+                  <Trash2 className="size-3.5" aria-hidden />
                   Delete
-                </Button>
+                </button>
               </div>
             ))
           )}
         </CardBody>
       </Card>
       {dialog}
-    </div>
+    </AdminShell>
   );
 }
