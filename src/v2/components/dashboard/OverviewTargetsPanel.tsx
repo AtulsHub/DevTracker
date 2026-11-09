@@ -169,12 +169,7 @@ export function OverviewTargetsPanel({
               </Card>
             )}
             {team.length > 0 ? (
-              <TargetGroup
-                title="From your teams"
-                items={team}
-                canDelete
-                onDelete={(t) => void removeTarget(t)}
-              />
+              <TargetGroup title="From your teams" items={team} />
             ) : (
               <Card>
                 <CardBody>
@@ -313,8 +308,10 @@ function TargetRow({
   const done = Boolean(target.progress?.isCompleted);
   const typeLabel = targetTypeMeta(target.type).label;
   const deletable =
-    canDelete &&
-    (target.source !== "team" || !target.teamId || Boolean(onDelete));
+    Boolean(canDelete) &&
+    target.source !== "team" &&
+    !target.teamId &&
+    Boolean(onDelete);
 
   return (
     <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border-subtle)] bg-[var(--v2-bg)]/40 p-3">

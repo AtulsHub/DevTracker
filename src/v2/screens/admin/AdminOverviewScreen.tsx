@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Activity,
+  ChartColumn,
   RefreshCw,
   Shield,
   UserMinus,
@@ -82,13 +83,22 @@ export function AdminOverviewScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [refreshed, setRefreshed] = useState(false);
+  const [maintenanceOn, setMaintenanceOn] = useState(false);
+  const [maintenanceMsg, setMaintenanceMsg] = useState("");
 
   function load() {
     startTransition(async () => {
       try {
         setError(null);
-        const res = await api<{ stats: Stats }>("/api/admin/stats");
-        setStats(res.stats);
+        const [statsRes, maintRes] = await Promise.all([
+          api<{ stats: Stats }>("/api/admin/stats"),
+          api<{ maintenance: { enabled: boolean; message: string } }>(
+            "/api/admin/maintenance",
+          ),
+        ]);
+        setStats(statsRes.stats);
+        setMaintenanceOn(maintRes.maintenance.enabled);
+        setMaintenanceMsg(maintRes.maintenance.message);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load");
       }
@@ -98,6 +108,24 @@ export function AdminOverviewScreen() {
   useEffect(() => {
     load();
   }, []);
+
+  async function toggleMaintenance() {
+    startTransition(async () => {
+      try {
+        setError(null);
+        const res = await api<{
+          maintenance: { enabled: boolean; message: string };
+        }>("/api/admin/maintenance", {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: !maintenanceOn }),
+        });
+        setMaintenanceOn(res.maintenance.enabled);
+        setMaintenanceMsg(res.maintenance.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not update maintenance");
+      }
+    });
+  }
 
   async function refreshContests() {
     startTransition(async () => {
@@ -117,21 +145,57 @@ export function AdminOverviewScreen() {
     <AdminShell
       title="Overview"
       actions={
-        <Button
-          size="sm"
-          variant="secondary"
-          loading={pending}
-          onClick={() => void refreshContests()}
-        >
-          <RefreshCw
-            className={cn("size-3.5", pending && "animate-spin")}
-            aria-hidden
-          />
-          {refreshed ? "Contests refreshed" : "Refresh contests"}
-        </Button>
+        <>
+          <Link href="/admin/dashboard">
+            <Button size="sm" variant="secondary">
+              <ChartColumn className="size-3.5" aria-hidden />
+              Full dashboard
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={pending}
+            onClick={() => void refreshContests()}
+          >
+            <RefreshCw
+              className={cn("size-3.5", pending && "animate-spin")}
+              aria-hidden
+            />
+            {refreshed ? "Contests refreshed" : "Refresh contests"}
+          </Button>
+        </>
       }
     >
       <AdminError message={error} />
+
+      <Card className="mb-5 overflow-hidden border-[color-mix(in_srgb,var(--admin-amber)_35%,var(--v2-border))]">
+        <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+              Maintenance mode
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--v2-fg-muted)]">
+              {maintenanceOn
+                ? maintenanceMsg || "Site is locked for non-admins."
+                : "When enabled, visitors are redirected to a maintenance page."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant={maintenanceOn ? "secondary" : "secondary"}
+            loading={pending}
+            onClick={() => void toggleMaintenance()}
+            className={
+              maintenanceOn
+                ? "border-[var(--admin-amber)]/40 text-[var(--admin-amber)]"
+                : undefined
+            }
+          >
+            {maintenanceOn ? "Turn off" : "Turn on"}
+          </Button>
+        </CardBody>
+      </Card>
 
       {!stats ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

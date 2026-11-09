@@ -79,6 +79,7 @@ type TeamInfo = {
   ownerId?: string;
   avatarUrl?: string | null;
   memberVisibilityPolicy?: string;
+  suspendedAt?: string | null;
   owner?: { username: string | null; displayName: string | null };
 };
 
@@ -715,6 +716,16 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       >
         ← Teams
       </Link>
+
+      {team.suspendedAt ? (
+        <p
+          role="status"
+          className="mt-3 rounded-[var(--v2-radius-md)] border border-[var(--v2-danger)]/25 bg-[var(--v2-danger)]/5 px-3 py-2 text-[var(--v2-text-xs)] text-[var(--v2-danger)]"
+        >
+          This team is suspended. New joins are blocked until an admin restores
+          it.
+        </p>
+      ) : null}
 
       <header className="mt-3 mb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">

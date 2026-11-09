@@ -20,6 +20,9 @@ type TeamRow = {
   slug: string;
   visibility: string;
   ownerId: string;
+  suspendedAt: string | null;
+  description: string | null;
+  avatarUrl: string | null;
   createdAt: string;
 };
 
@@ -51,6 +54,21 @@ export function AdminTeamsScreen() {
     load("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function patch(id: string, body: Record<string, boolean>) {
+    startTransition(async () => {
+      try {
+        setError(null);
+        await api(`/api/admin/teams/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+        load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Update failed");
+      }
+    });
+  }
 
   async function remove(team: TeamRow) {
     const ok = await confirm({
@@ -139,6 +157,11 @@ export function AdminTeamsScreen() {
                     >
                       {t.visibility.toLowerCase()}
                     </span>
+                    {t.suspendedAt ? (
+                      <span className="admin-status admin-status-bad">
+                        suspended
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-0.5 text-[11px] text-[var(--v2-fg-subtle)]">
                     /{t.slug}
@@ -148,15 +171,39 @@ export function AdminTeamsScreen() {
                     </span>
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => void remove(t)}
-                  className="inline-flex min-h-8 items-center gap-1.5 self-start rounded-full border border-[var(--admin-rose)]/30 px-2.5 text-[11px] font-semibold text-[var(--admin-rose)] transition-colors hover:bg-[var(--admin-rose-soft)] disabled:opacity-50"
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                  Delete
-                </button>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      void patch(t.id, { suspended: !t.suspendedAt })
+                    }
+                    className="min-h-8 rounded-full border border-[var(--v2-border)] px-2.5 text-[11px] font-semibold text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)] disabled:opacity-50"
+                  >
+                    {t.suspendedAt ? "Restore" : "Suspend"}
+                  </button>
+                  {t.description ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        void patch(t.id, { clearDescription: true })
+                      }
+                      className="min-h-8 rounded-full border border-[var(--v2-border)] px-2.5 text-[11px] font-semibold text-[var(--v2-fg-muted)] hover:text-[var(--v2-fg)] disabled:opacity-50"
+                    >
+                      Clear desc
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => void remove(t)}
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--admin-rose)]/30 px-2.5 text-[11px] font-semibold text-[var(--admin-rose)] hover:bg-[var(--admin-rose-soft)] disabled:opacity-50"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                    Delete
+                  </button>
+                </div>
               </div>
             ))
           )}

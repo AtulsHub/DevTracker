@@ -31,6 +31,7 @@ export function OnboardingScreen({
   const [linked, setLinked] = useState(false);
   const [targetTitle, setTargetTitle] = useState("Solve 5 this week");
   const [targetGoal, setTargetGoal] = useState("5");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const steps = useMemo(
@@ -75,10 +76,14 @@ export function OnboardingScreen({
       return;
     }
     try {
+      const startsAt = new Date();
+      const endsAt = new Date(startsAt.getTime() + 7 * 86400000);
       await v2Api.createTarget({
         title: targetTitle.trim(),
-        type: "PROBLEM_COUNT",
+        type: "SOLVE_COUNT",
         goalValue: goal,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
       });
       toast.success("Target created");
       finish();
@@ -214,10 +219,38 @@ export function OnboardingScreen({
             <>
               <p className="flex items-center gap-2 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
                 <Users className="size-4" />
-                Teams keep everyone accountable. Join one or create later.
+                Join with an invite code, or browse teams later.
               </p>
+              <Input
+                label="Invite code"
+                placeholder="optional"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+              />
+              <Button
+                className="w-full"
+                variant="secondary"
+                loading={pending}
+                disabled={!inviteCode.trim()}
+                onClick={() =>
+                  void (async () => {
+                    setError(null);
+                    try {
+                      await v2Api.joinByCode(inviteCode.trim());
+                      toast.success("Joined team");
+                      setStep(3);
+                    } catch (e) {
+                      setError(
+                        e instanceof Error ? e.message : "Could not join team",
+                      );
+                    }
+                  })()
+                }
+              >
+                Join with code
+              </Button>
               <Link href="/teams" className="no-underline">
-                <Button className="w-full" variant="secondary">
+                <Button className="w-full" variant="ghost">
                   Browse teams
                 </Button>
               </Link>
@@ -230,7 +263,7 @@ export function OnboardingScreen({
                   Back
                 </Button>
                 <Button className="flex-1" onClick={() => setStep(3)}>
-                  Continue
+                  Skip
                 </Button>
               </div>
             </>

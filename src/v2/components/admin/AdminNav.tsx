@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  ChartColumn,
   LayoutDashboard,
   ScrollText,
+  ShieldAlert,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -18,8 +20,10 @@ const LINKS: {
   exact?: boolean;
 }[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/admin/dashboard", label: "Dashboard", icon: ChartColumn },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/teams", label: "Teams", icon: UsersRound },
+  { href: "/admin/moderation", label: "Moderation", icon: ShieldAlert },
   { href: "/admin/sync", label: "Sync", icon: Activity },
   { href: "/admin/audit", label: "Audit", icon: ScrollText },
 ];

@@ -17,7 +17,18 @@ import {
   targets,
   targetProgress,
 } from "@/server/db/schema";
-import { eq, and, desc, count, sql, ilike, or, inArray, gte } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  count,
+  sql,
+  ilike,
+  or,
+  inArray,
+  gte,
+  isNull,
+} from "drizzle-orm";
 import { formatISO, subDays } from "date-fns";
 import {
   notifyJoinApproved,
@@ -194,9 +205,10 @@ export async function getPublicTeams(
     where: q
       ? and(
           eq(teams.visibility, "PUBLIC"),
+          isNull(teams.suspendedAt),
           or(ilike(teams.name, `%${q}%`), ilike(teams.description, `%${q}%`)),
         )
-      : eq(teams.visibility, "PUBLIC"),
+      : and(eq(teams.visibility, "PUBLIC"), isNull(teams.suspendedAt)),
     limit,
     offset,
     orderBy: [desc(teams.createdAt)],
@@ -235,6 +247,9 @@ export async function joinTeamByInvite(inviteCode: string, userId: string) {
 
   if (!team) {
     throw new Error("Invalid invite code");
+  }
+  if (team.suspendedAt) {
+    throw new Error("This team is suspended");
   }
 
   // Check if already a member

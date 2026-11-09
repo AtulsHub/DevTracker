@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/server/admin";
-import { patchAdminUser } from "@/server/services/admin";
+import {
+  moderateUserContent,
+  patchAdminUser,
+} from "@/server/services/admin";
 
 const bodySchema = z
   .object({
@@ -9,6 +12,9 @@ const bodySchema = z
     isAdmin: z.boolean().optional(),
     emailVerified: z.boolean().optional(),
     discoverable: z.boolean().optional(),
+    clearBio: z.boolean().optional(),
+    clearAvatar: z.boolean().optional(),
+    clearHeadline: z.boolean().optional(),
   })
   .refine((d) => Object.keys(d).length > 0, { message: "No fields to update" });
 
@@ -38,7 +44,29 @@ export async function PATCH(
   }
 
   try {
-    const user = await patchAdminUser(gate.admin.id, id, parsed.data);
+    const {
+      clearBio,
+      clearAvatar,
+      clearHeadline,
+      ...accountPatch
+    } = parsed.data;
+
+    let user = null;
+    if (
+      accountPatch.disabled !== undefined ||
+      accountPatch.isAdmin !== undefined ||
+      accountPatch.emailVerified !== undefined ||
+      accountPatch.discoverable !== undefined
+    ) {
+      user = await patchAdminUser(gate.admin.id, id, accountPatch);
+    }
+    if (clearBio || clearAvatar || clearHeadline) {
+      user = await moderateUserContent(gate.admin.id, id, {
+        clearBio,
+        clearAvatar,
+        clearHeadline,
+      });
+    }
     return NextResponse.json({ ok: true, user });
   } catch (e) {
     return NextResponse.json(

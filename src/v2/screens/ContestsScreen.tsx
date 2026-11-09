@@ -43,11 +43,24 @@ function formatDuration(seconds: number | null | undefined) {
   return `${h}h ${m}m`;
 }
 
+function formatCountdown(startsAt: string | Date) {
+  const ms = new Date(startsAt).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return "Live / started";
+  const mins = Math.round(ms / 60_000);
+  if (mins < 60) return `in ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `in ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `in ${days}d`;
+}
+
 export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [view, setView] = useState<View>("calendar");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [upcomingOnly, setUpcomingOnly] = useState(true);
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -84,16 +97,20 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   );
 
   const filtered = useMemo(() => {
+    const now = Date.now();
     return contests
       .filter((c) => practicePlatforms.has(c.platform))
       .filter((c) =>
         platformFilter === "all" ? true : c.platform === platformFilter,
       )
+      .filter((c) =>
+        upcomingOnly ? new Date(c.startsAt).getTime() >= now - 3 * 3600_000 : true,
+      )
       .sort(
         (a, b) =>
           new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
       );
-  }, [contests, platformFilter, practicePlatforms]);
+  }, [contests, platformFilter, practicePlatforms, upcomingOnly]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, ContestDto[]>();
@@ -172,6 +189,15 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex min-h-9 cursor-pointer items-center gap-2 pb-0.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
+          <input
+            type="checkbox"
+            checked={upcomingOnly}
+            onChange={(e) => setUpcomingOnly(e.target.checked)}
+            className="size-4 accent-[var(--v2-primary)]"
+          />
+          Upcoming only
         </label>
         <p className="pb-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
           {filtered.length} contest{filtered.length === 1 ? "" : "s"}
@@ -256,9 +282,14 @@ function ContestRow({ contest: c }: { contest: ContestDto }) {
     <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border-subtle)] bg-[var(--v2-bg)] p-3 transition-colors hover:border-[var(--v2-border)]">
       <div className="mb-1.5 flex flex-wrap items-center gap-2">
         <PlatformBadge platform={c.platform} />
-        <p className="text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)]">
+        <p className="min-w-0 flex-1 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)]">
           {c.name}
         </p>
+        {formatCountdown(c.startsAt) ? (
+          <span className="rounded-full bg-[var(--v2-primary-muted)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--v2-primary)]">
+            {formatCountdown(c.startsAt)}
+          </span>
+        ) : null}
       </div>
       <dl className="grid gap-1 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)] sm:grid-cols-2">
         <div>

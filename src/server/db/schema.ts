@@ -529,6 +529,8 @@ export const teams = pgTable("teams", {
     .notNull()
     .references(() => users.id),
   inviteCode: varchar("invite_code", { length: 32 }).unique(),
+  /** Soft suspend — hidden from Discover / join blocked when set. */
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -785,6 +787,15 @@ export const auditLog = pgTable("audit_log", {
   entityId: text("entity_id"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** Key/value site config (maintenance mode, etc.). */
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key", { length: 80 }).primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull().default({}),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
