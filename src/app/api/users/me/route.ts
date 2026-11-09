@@ -99,7 +99,6 @@ const updateProfileSchema = z
       ])
       .optional()
       .transform((v) => (v === "" || v === undefined ? null : v)),
-    timezone: z.string().min(1).max(60).optional(),
     profileVisibility: z
       .enum(["PUBLIC", "FOLLOWERS_ONLY", "PRIVATE"])
       .optional(),
@@ -132,7 +131,6 @@ export const PROFILE_COLUMNS = {
   projects: users.projects,
   certifications: users.certifications,
   customLinks: users.customLinks,
-  timezone: users.timezone,
   contestRemindersEnabled: users.contestRemindersEnabled,
   profileVisibility: users.profileVisibility,
   discoverable: users.discoverable,

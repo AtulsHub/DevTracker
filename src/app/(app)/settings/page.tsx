@@ -21,7 +21,6 @@ export default async function SettingsPage() {
     columns: {
       username: true,
       profileVisibility: true,
-      timezone: true,
       discoverable: true,
       contestRemindersEnabled: true,
     },
@@ -34,7 +33,6 @@ export default async function SettingsPage() {
       user={{
         username: user.username,
         profileVisibility: user.profileVisibility,
-        timezone: user.timezone,
         discoverable: user.discoverable,
         contestRemindersEnabled: user.contestRemindersEnabled,
       }}

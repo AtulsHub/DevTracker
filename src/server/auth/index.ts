@@ -22,6 +22,7 @@ import {
   authVerificationTokens,
 } from "@/server/db/auth-tables";
 import { isPlaceholderUsername } from "@/lib/username";
+import { emailIsAdminBootstrap } from "@/server/admin/emails";
 
 class EmailNotVerified extends CredentialsSignin {
   code = "email_not_verified";
@@ -76,6 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!user || !user.passwordHash) return null;
+        if (user.disabledAt) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
@@ -112,6 +114,66 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/sign-in",
     newUser: "/onboarding",
     error: "/sign-in",
+  },
+
+  callbacks: {
+    async signIn({ user }) {
+      if (!user?.id) return true;
+      const row = await db.query.users.findFirst({
+        where: eq(users.id, user.id),
+        columns: { disabledAt: true },
+      });
+      return !row?.disabledAt;
+    },
+    async jwt({ token, user, profile, trigger }) {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+      const picture =
+        cookieSafeImage(
+          (user?.image as string | undefined) ??
+            (token.picture as string | undefined) ??
+            (profile && "picture" in profile
+              ? String((profile as { picture?: string }).picture ?? "")
+              : null),
+        ) ?? undefined;
+      if (picture) token.picture = picture;
+      else {
+        delete token.picture;
+        delete token.image;
+      }
+
+      // Refresh admin flag on sign-in / update, or when missing.
+      if (token.sub && (user || trigger === "update" || token.isAdmin == null)) {
+        const row = await db.query.users.findFirst({
+          where: eq(users.id, token.sub),
+          columns: { isAdmin: true, email: true, disabledAt: true },
+        });
+        if (row?.disabledAt) {
+          token.isAdmin = false;
+        } else {
+          const boot = emailIsAdminBootstrap(row?.email);
+          token.isAdmin = Boolean(row?.isAdmin || boot);
+          if (row && !row.isAdmin && boot) {
+            await db
+              .update(users)
+              .set({ isAdmin: true, updatedAt: new Date() })
+              .where(eq(users.id, token.sub));
+          }
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token?.sub) {
+        session.user.id = token.sub;
+      }
+      if (session.user) {
+        session.user.image = cookieSafeImage(session.user.image) ?? undefined;
+        session.user.isAdmin = Boolean(token.isAdmin);
+      }
+      return session;
+    },
   },
 
   events: {
@@ -164,39 +226,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       await db.update(users).set(updates).where(eq(users.id, user.id));
-    },
-  },
-
-  callbacks: {
-    async jwt({ token, user, profile }) {
-      // Persist DB user id on first sign-in (OAuth + credentials).
-      if (user?.id) {
-        token.sub = user.id;
-      }
-      // Strip oversized / data-URL pictures from the JWT (HTTP 431 otherwise)
-      const picture =
-        cookieSafeImage(
-          (user?.image as string | undefined) ??
-            (token.picture as string | undefined) ??
-            (profile && "picture" in profile
-              ? String((profile as { picture?: string }).picture ?? "")
-              : null),
-        ) ?? undefined;
-      if (picture) token.picture = picture;
-      else {
-        delete token.picture;
-        delete token.image;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token?.sub) {
-        session.user.id = token.sub;
-      }
-      if (session.user) {
-        session.user.image = cookieSafeImage(session.user.image) ?? undefined;
-      }
-      return session;
     },
   },
 });

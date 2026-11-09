@@ -9,6 +9,7 @@ import {
   LayoutTemplate,
   LogOut,
   Settings,
+  Shield,
   UserRound,
   X,
 } from "lucide-react";
@@ -82,6 +83,7 @@ export function MobileAccountSheet({
   open,
   onClose,
   signedIn,
+  isAdmin = false,
   userName,
   userEmail,
   userImage,
@@ -90,6 +92,7 @@ export function MobileAccountSheet({
   open: boolean;
   onClose: () => void;
   signedIn: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -249,6 +252,11 @@ export function MobileAccountSheet({
               <SheetLink href="/settings" icon={Settings} onClick={closeSheet}>
                 Settings
               </SheetLink>
+              {isAdmin ? (
+                <SheetLink href="/admin" icon={Shield} onClick={closeSheet}>
+                  Admin
+                </SheetLink>
+              ) : null}
               <SheetLink href="/landing" icon={LayoutTemplate} onClick={closeSheet}>
                 Landing page
               </SheetLink>

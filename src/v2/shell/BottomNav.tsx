@@ -18,11 +18,13 @@ const OVERVIEW: NavItem = {
 
 export function BottomNav({
   signedIn,
+  isAdmin,
   userName,
   userEmail,
   userImage,
 }: {
   signedIn: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -114,6 +116,7 @@ export function BottomNav({
         open={accountOpen}
         onClose={() => setAccountOpen(false)}
         signedIn={signedIn}
+        isAdmin={isAdmin}
         userName={userName}
         userEmail={userEmail}
         userImage={userImage}

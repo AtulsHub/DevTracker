@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { ChevronUp, LogOut, Settings, UserRound } from "lucide-react";
+import { ChevronUp, LogOut, Settings, Shield, UserRound } from "lucide-react";
 import { cn } from "@/v2/lib/cn";
 
 function initials(name?: string | null) {
@@ -20,11 +20,13 @@ export function UserAccountMenu({
   userName,
   userEmail,
   userImage,
+  isAdmin = false,
   compact = false,
 }: {
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
+  isAdmin?: boolean;
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -137,6 +139,17 @@ export function UserAccountMenu({
               <Settings className="size-4 shrink-0" aria-hidden />
               Settings
             </Link>
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)] no-underline hover:bg-[var(--v2-surface-hover)] hover:text-[var(--v2-fg)]"
+              >
+                <Shield className="size-4 shrink-0" aria-hidden />
+                Admin
+              </Link>
+            ) : null}
           </div>
 
           <div className="border-t border-[var(--v2-border)] py-1">

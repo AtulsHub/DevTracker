@@ -10,12 +10,14 @@ import { GuestShell } from "./GuestShell";
 export function AppShell({
   children,
   signedIn,
+  isAdmin,
   userName,
   userEmail,
   userImage,
 }: {
   children: React.ReactNode;
   signedIn: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -29,6 +31,7 @@ export function AppShell({
     return (
       <GuestShell
         signedIn={signedIn}
+        isAdmin={isAdmin}
         userName={userName}
         userEmail={userEmail}
         userImage={userImage}
@@ -50,6 +53,7 @@ export function AppShell({
       >
         <Sidebar
           signedIn
+          isAdmin={isAdmin}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
@@ -62,6 +66,7 @@ export function AppShell({
         </div>
         <BottomNav
           signedIn
+          isAdmin={isAdmin}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}

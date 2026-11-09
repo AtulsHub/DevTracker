@@ -235,6 +235,10 @@ export const users = pgTable("users", {
     .notNull()
     .default("PUBLIC"),
   discoverable: boolean("discoverable").notNull().default(true),
+  /** Platform-wide admin (not team role). Bootstrap via ADMIN_EMAILS env too. */
+  isAdmin: boolean("is_admin").notNull().default(false),
+  /** Soft ban — blocked from signing in when set. */
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

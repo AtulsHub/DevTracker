@@ -104,12 +104,14 @@ const MOBILE_ICONS: Record<string, typeof Home> = {
 
 function GuestTopBar({
   signedIn,
+  isAdmin,
   userName,
   userEmail,
   userImage,
   onOpenAccount,
 }: {
   signedIn: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -263,6 +265,7 @@ function GuestTopBar({
               </Link>
               <UserAccountMenu
                 compact
+                isAdmin={isAdmin}
                 userName={userName}
                 userEmail={userEmail}
                 userImage={userImage}
@@ -383,12 +386,14 @@ function GuestBottomBar({
 export function GuestShell({
   children,
   signedIn = false,
+  isAdmin = false,
   userName,
   userEmail,
   userImage,
 }: {
   children: React.ReactNode;
   signedIn?: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -400,6 +405,7 @@ export function GuestShell({
       <div className="flex min-h-dvh flex-col bg-[var(--v2-bg)] text-[var(--v2-fg)]">
         <GuestTopBar
           signedIn={signedIn}
+          isAdmin={isAdmin}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
@@ -418,6 +424,7 @@ export function GuestShell({
           open={accountOpen}
           onClose={() => setAccountOpen(false)}
           signedIn={signedIn}
+          isAdmin={isAdmin}
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}

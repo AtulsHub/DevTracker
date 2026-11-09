@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from "@/server/auth";
+import { userIsAdmin } from "@/server/admin";
 import { AppShell } from "@/v2/shell/AppShell";
 import { FeedbackProviders } from "@/v2/feedback/FeedbackProviders";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default async function RootLayout({
 }) {
   const session = await auth();
   const signedIn = !!session?.user?.id;
+  const isAdmin = signedIn ? await userIsAdmin(session.user.id) : false;
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -73,6 +75,7 @@ export default async function RootLayout({
         <FeedbackProviders>
           <AppShell
             signedIn={signedIn}
+            isAdmin={isAdmin}
             userName={session?.user?.name}
             userEmail={session?.user?.email}
             userImage={session?.user?.image}

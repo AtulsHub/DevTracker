@@ -90,11 +90,13 @@ function ThemeToggle() {
 
 export function Sidebar({
   signedIn,
+  isAdmin,
   userName,
   userEmail,
   userImage,
 }: {
   signedIn: boolean;
+  isAdmin?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userImage?: string | null;
@@ -128,6 +130,7 @@ export function Sidebar({
           <div className="border-t border-[var(--v2-border)] p-2">
             <UserAccountMenu
               compact
+              isAdmin={isAdmin}
               userName={userName}
               userEmail={userEmail}
               userImage={userImage}
@@ -197,6 +200,7 @@ export function Sidebar({
           <ThemeToggle />
           {signedIn ? (
             <UserAccountMenu
+              isAdmin={isAdmin}
               userName={userName}
               userEmail={userEmail}
               userImage={userImage}

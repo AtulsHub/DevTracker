@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Check,
-  Clock,
   Compass,
   Eye,
   EyeOff,
@@ -28,7 +27,6 @@ import { cn } from "@/v2/lib/cn";
 export type SettingsUser = {
   username: string;
   profileVisibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
-  timezone: string | null;
   discoverable: boolean;
   contestRemindersEnabled: boolean;
 };
@@ -73,26 +71,16 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
   const [pending, startTransition] = useTransition();
   const [visibility, setVisibility] = useState(user.profileVisibility);
   const [discoverable, setDiscoverable] = useState(user.discoverable);
-  const [timezone, setTimezone] = useState(user.timezone ?? "UTC");
   const [contestReminders, setContestReminders] = useState(
     user.contestRemindersEnabled,
   );
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const timezones = useMemo(() => {
-    try {
-      return Intl.supportedValuesOf("timeZone");
-    } catch {
-      return ["UTC", "Asia/Kolkata", "America/New_York", "Europe/London"];
-    }
-  }, []);
-
   const dirty =
     visibility !== user.profileVisibility ||
     discoverable !== user.discoverable ||
-    contestReminders !== user.contestRemindersEnabled ||
-    (timezone || "UTC") !== (user.timezone ?? "UTC");
+    contestReminders !== user.contestRemindersEnabled;
 
   async function save() {
     setMsg(null);
@@ -101,7 +89,6 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
       await v2Api.patchMe({
         profileVisibility: visibility,
         discoverable,
-        timezone: timezone || "UTC",
         contestRemindersEnabled: contestReminders,
       });
       setMsg("Settings saved");
@@ -245,33 +232,6 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                     />
                   </span>
                 </span>
-              </label>
-            </CardBody>
-          </Card>
-        </SettingsSection>
-
-        <SettingsSection title="Regional">
-          <Card className="shadow-[var(--v2-shadow-sm)]">
-            <CardBody>
-              <label className="flex flex-col gap-2">
-                <span className="flex items-center gap-2 text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)]">
-                  <Clock
-                    className="size-3.5 text-[var(--v2-fg-subtle)]"
-                    aria-hidden
-                  />
-                  Timezone
-                </span>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="min-h-10 rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 text-[var(--v2-text-sm)] text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
-                >
-                  {timezones.map((tz) => (
-                    <option key={tz} value={tz}>
-                      {tz}
-                    </option>
-                  ))}
-                </select>
               </label>
             </CardBody>
           </Card>
