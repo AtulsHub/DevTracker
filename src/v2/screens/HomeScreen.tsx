@@ -118,7 +118,6 @@ export function HomeScreen({
       <div className="flex flex-col gap-8">
         <PageHeader
           title={`Welcome back${greeting ? `, ${greeting}` : ""}`}
-          description="What’s next today — contests, a quick nudge, then dive into Overview."
           className="mb-0"
           actions={
             <>
@@ -239,8 +238,7 @@ export function HomeScreen({
         {needsLink ? (
           <Card>
             <EmptyState
-              title="Link a platform to unlock Home"
-              description="Connect Codeforces, LeetCode, or another site so streaks, sync, and contest reminders have something to work with."
+              title="Link a platform"
               action={
                 <Link href="/onboarding">
                   <Button size="sm">
@@ -257,7 +255,6 @@ export function HomeScreen({
           <Card>
             <EmptyState
               title="No active target"
-              description="Set a weekly problem goal so Overview can track progress."
               action={
                 <Link href="/dashboard">
                   <Button size="sm" variant="secondary">
@@ -343,7 +340,6 @@ export function HomeScreen({
               {upcomingWeek.length === 0 ? (
                 <EmptyState
                   title="No contests in the next 7 days"
-                  description="Check the calendar for later events."
                   className="py-8"
                   action={
                     <Link href="/contests">

@@ -115,7 +115,6 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
     <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
         title="Settings"
-        description="Control how your account appears, where you’re discoverable, and how DevTrack looks."
         actions={
           <Button
             size="sm"
@@ -143,10 +142,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
       )}
 
       <div className="space-y-6">
-        <SettingsSection
-          title="Profile content"
-          description="Bio, experience, projects, and resume live on the profile editor."
-        >
+        <SettingsSection title="Profile content">
           <Card className="shadow-[var(--v2-shadow-sm)]">
             <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -156,9 +152,6 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                 <div>
                   <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                     @{user.username}
-                  </p>
-                  <p className="mt-0.5 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
-                    Update the public portfolio people see on your page.
                   </p>
                 </div>
               </div>
@@ -179,10 +172,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
           </Card>
         </SettingsSection>
 
-        <SettingsSection
-          title="Privacy"
-          description="Choose who can open your public profile."
-        >
+        <SettingsSection title="Privacy">
           <div className="grid gap-2.5">
             {VISIBILITY_OPTIONS.map((opt) => {
               const selected = visibility === opt.id;
@@ -231,14 +221,11 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
           </div>
         </SettingsSection>
 
-        <SettingsSection
-          title="Discovery"
-          description="Control whether you appear in Explore."
-        >
+        <SettingsSection title="Discovery">
           <Card className="shadow-[var(--v2-shadow-sm)]">
             <CardBody>
-              <label className="flex cursor-pointer items-start gap-3">
-                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-bg-muted)] text-[var(--v2-fg-muted)]">
+              <label className="flex cursor-pointer items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--v2-radius-md)] bg-[var(--v2-bg-muted)] text-[var(--v2-fg-muted)]">
                   {discoverable ? (
                     <Compass className="size-4" aria-hidden />
                   ) : (
@@ -257,20 +244,13 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
                       className="size-4 accent-[var(--v2-primary)]"
                     />
                   </span>
-                  <span className="mt-1 block text-[var(--v2-text-xs)] leading-relaxed text-[var(--v2-fg-muted)]">
-                    When enabled and your profile is public, others can find you
-                    from the Explore page.
-                  </span>
                 </span>
               </label>
             </CardBody>
           </Card>
         </SettingsSection>
 
-        <SettingsSection
-          title="Regional"
-          description="Used for contest times and local scheduling."
-        >
+        <SettingsSection title="Regional">
           <Card className="shadow-[var(--v2-shadow-sm)]">
             <CardBody>
               <label className="flex flex-col gap-2">
@@ -297,25 +277,16 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
           </Card>
         </SettingsSection>
 
-        <SettingsSection
-          title="Contest reminders"
-          description="In-app only (bell). Never emailed — keeps Resend quota for verify/reset/team events."
-        >
+        <SettingsSection title="Contest reminders">
           <Card className="shadow-[var(--v2-shadow-sm)]">
             <CardBody>
-              <label className="flex cursor-pointer items-start justify-between gap-4">
-                <span>
-                  <span className="block text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-                    Remind me ~1 hour before contests
-                  </span>
-                  <span className="mt-1 block text-[var(--v2-text-xs)] leading-relaxed text-[var(--v2-fg-muted)]">
-                    Only for platforms you’ve linked. Shows in Notifications —
-                    no email.
-                  </span>
+              <label className="flex cursor-pointer items-center justify-between gap-4">
+                <span className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                  Remind me ~1 hour before contests
                 </span>
                 <input
                   type="checkbox"
-                  className="mt-1 size-4 accent-[var(--v2-primary)]"
+                  className="size-4 accent-[var(--v2-primary)]"
                   checked={contestReminders}
                   onChange={(e) => setContestReminders(e.target.checked)}
                 />
@@ -324,10 +295,7 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
           </Card>
         </SettingsSection>
 
-        <SettingsSection
-          title="Appearance"
-          description="Applies immediately on this device."
-        >
+        <SettingsSection title="Appearance">
           <div className="grid grid-cols-3 gap-2.5">
             {THEME_OPTIONS.map((opt) => {
               const selected = theme === opt.id;
@@ -352,21 +320,12 @@ export function SettingsScreen({ user }: { user: SettingsUser }) {
           </div>
         </SettingsSection>
 
-        <SettingsSection
-          title="Session"
-          description="Sign out of DevTrack on this browser."
-        >
+        <SettingsSection title="Session">
           <Card className="border-[var(--v2-danger)]/20 shadow-[var(--v2-shadow-sm)]">
             <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-                  Sign out
-                </p>
-                <p className="mt-0.5 text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
-                  You’ll need to sign in again to sync platforms or edit your
-                  profile.
-                </p>
-              </div>
+              <p className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+                Sign out
+              </p>
               <Button
                 size="lg"
                 variant="danger"
@@ -400,7 +359,7 @@ function SettingsSection({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
@@ -409,9 +368,11 @@ function SettingsSection({
         <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
           {title}
         </h2>
-        <p className="mt-1 text-[var(--v2-text-xs)] leading-relaxed text-[var(--v2-fg-muted)]">
-          {description}
-        </p>
+        {description ? (
+          <p className="mt-1 text-[var(--v2-text-xs)] leading-relaxed text-[var(--v2-fg-muted)]">
+            {description}
+          </p>
+        ) : null}
       </div>
       <div className="min-w-0">{children}</div>
     </section>

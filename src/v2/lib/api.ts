@@ -204,6 +204,8 @@ export const v2Api = {
     api<{ targets: TargetDto[] }>(`/api/targets?teamId=${teamId}`),
   createTarget: (body: Record<string, unknown>) =>
     api("/api/targets", { method: "POST", body: JSON.stringify(body) }),
+  deleteTarget: (id: string) =>
+    api(`/api/targets/${id}`, { method: "DELETE" }),
   register: (body: { username: string; email: string; password: string }) =>
     api<{ ok: boolean; needsVerification?: boolean; autoVerified?: boolean }>(
       "/api/auth/register",
@@ -359,6 +361,7 @@ export interface TargetDto {
   description?: string | null;
   type: string;
   teamId?: string | null;
+  createdBy?: string | null;
   criteria?: Record<string, unknown> | null;
   startsAt?: string | Date | null;
   endsAt?: string | Date | null;

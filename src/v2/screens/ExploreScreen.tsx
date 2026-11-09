@@ -186,10 +186,7 @@ export function ExploreScreen({ users }: { users: ExploreUser[] }) {
 
   return (
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
-      <PageHeader
-        title="Explore"
-        description="Find grinders by platform, rating, and skills."
-      />
+      <PageHeader title="Explore" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MiniStat label="Public profiles" value={stats.count} icon={Users} />
@@ -357,7 +354,6 @@ export function ExploreScreen({ users }: { users: ExploreUser[] }) {
         <Card className="shadow-[var(--v2-shadow-sm)]">
           <EmptyState
             title="No profiles match"
-            description="Try another platform or skill, or clear filters."
             action={
               activeFilters > 0 || q ? (
                 <button

@@ -127,7 +127,6 @@ export function TeamsScreen({
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
         title="Teams"
-        description="Create a squad, discover public teams, invite members, set targets, and track the board."
         actions={
           signedIn ? (
             <>
@@ -179,7 +178,6 @@ export function TeamsScreen({
           <Card>
             <EmptyState
               title="Sign up to use teams"
-              description="Browse public teams on Discover — your own teams need a login."
               action={
                 <Link href="/sign-up">
                   <Button size="sm">Sign up</Button>
@@ -191,7 +189,6 @@ export function TeamsScreen({
           <Card>
             <EmptyState
               title="No teams yet"
-              description="Create a team for your club, join with an invite code, or browse public teams."
               action={
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button size="sm" onClick={() => setOpen(true)}>
@@ -237,14 +234,7 @@ export function TeamsScreen({
             </p>
           ) : discover.length === 0 ? (
             <Card>
-              <EmptyState
-                title="No public teams found"
-                description={
-                  discoverQuery
-                    ? "Try a different search."
-                    : "Be the first to create a public team."
-                }
-              />
+              <EmptyState title="No public teams found" />
             </Card>
           ) : (
             <TeamGrid teams={discover} showJoinHint />

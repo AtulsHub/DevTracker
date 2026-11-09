@@ -166,8 +166,7 @@ export function LeaderboardBoard({
             landing ? "text-[var(--land-muted)]" : "text-[var(--v2-fg-muted)]",
           )}
         >
-          No public ratings for this board yet. Link a platform and stay
-          discoverable to appear here.
+          No public ratings yet.
         </p>
       ) : (
         <ol

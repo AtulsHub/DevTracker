@@ -73,7 +73,6 @@ export function ActivityChart({
     return (
       <EmptyState
         title="No solves in this period"
-        description="Try a wider range or include more platforms."
         className="py-10"
         action={emptyActions}
       />

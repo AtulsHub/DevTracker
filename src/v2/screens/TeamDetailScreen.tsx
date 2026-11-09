@@ -15,6 +15,7 @@ import {
   Flag,
   Megaphone,
   Target,
+  Trash2,
   Trophy,
   UserPlus,
   CalendarDays,
@@ -106,7 +107,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
   const [inviteUser, setInviteUser] = useState("");
   const [targetOpen, setTargetOpen] = useState(false);
   const [targetTitle, setTargetTitle] = useState("");
-  const [targetDescription, setTargetDescription] = useState("");
   const [targetType, setTargetType] = useState<TargetTypeId>("SOLVE_COUNT");
   const [targetGoal, setTargetGoal] = useState("10");
   const [targetDays, setTargetDays] = useState("7");
@@ -516,6 +516,25 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
     }
   }
 
+  async function removeTarget(target: TargetDto) {
+    const ok = await confirm({
+      title: `Delete “${target.title}”?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await v2Api.deleteTarget(target.id);
+      await refreshAll();
+      toast.success("Target deleted");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Could not delete target");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function createTarget() {
     if (!team) return;
     const meta = targetTypeMeta(targetType);
@@ -555,7 +574,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
         criteria.items = items;
         goal = items.length;
       }
-      criteria.note = targetDescription.trim() || undefined;
     }
 
     if (!targetTitle.trim() || !Number.isFinite(goal) || goal < 1) {
@@ -572,7 +590,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       ).toISOString();
       await v2Api.createTarget({
         title: targetTitle.trim(),
-        description: targetDescription.trim() || null,
+        description: null,
         type: targetType,
         goalValue: goal,
         startsAt,
@@ -582,14 +600,13 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
       });
       setTargetOpen(false);
       setTargetTitle("");
-      setTargetDescription("");
       setTargetGoal(meta.goalPlaceholder);
       setTargetProblemList("");
       setTargetChecklist("");
       setTargetPlatform("");
       setTargetMinRating("");
       setTargetMaxRating("");
-      setMsg("Target created for all active members");
+      setMsg("Target created");
       setTab("targets");
       await refreshAll();
     } catch (e) {
@@ -806,10 +823,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                 </h2>
               </CardHeader>
               <CardBody className="space-y-3 pt-0">
-                <p className="text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-                  Share this code or link. For private teams, joiners wait for
-                  approval.
-                </p>
                 <p className="font-mono text-[var(--v2-text-xl)] font-semibold tracking-widest text-[var(--v2-fg)]">
                   {team.inviteCode}
                 </p>
@@ -892,11 +905,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
               ) : targets.length === 0 ? (
                 <EmptyState
                   title="No targets yet"
-                  description={
-                    isLeader
-                      ? "Set a solve goal for the whole team."
-                      : "Leaders can set practice targets here."
-                  }
                   action={
                     isLeader ? (
                       <Button size="sm" onClick={() => setTargetOpen(true)}>
@@ -908,7 +916,12 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
               ) : (
                 <ul className="space-y-3">
                   {targets.slice(0, 3).map((t) => (
-                    <TargetCard key={t.id} target={t} showMembers={isLeader} />
+                    <TargetCard
+                      key={t.id}
+                      target={t}
+                      showMembers={isLeader}
+                      onDelete={isLeader ? removeTarget : undefined}
+                    />
                   ))}
                 </ul>
               )}
@@ -973,10 +986,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
 
           {filteredActivity.length === 0 ? (
             <Card>
-              <EmptyState
-                title="No activity in this range"
-                description="Problem solves, contests, day totals, targets, joins, and announcements appear here after syncs."
-              />
+              <EmptyState title="No activity in this range" />
             </Card>
           ) : (
             activityGroups.map((group) => (
@@ -1013,10 +1023,7 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           ) : null}
           {announcements.length === 0 ? (
             <Card>
-              <EmptyState
-                title="No announcements"
-                description="Leaders can post updates for the team."
-              />
+              <EmptyState title="No announcements" />
             </Card>
           ) : (
             announcements.map((a) => (
@@ -1228,14 +1235,16 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           ) : null}
           {targets.length === 0 ? (
             <Card>
-              <EmptyState
-                title="No team targets"
-                description="Leaders set solve goals that track automatically from synced platforms."
-              />
+              <EmptyState title="No team targets" />
             </Card>
           ) : (
             targets.map((t) => (
-              <TargetCard key={t.id} target={t} showMembers={isLeader} />
+              <TargetCard
+                key={t.id}
+                target={t}
+                showMembers={isLeader}
+                onDelete={isLeader ? removeTarget : undefined}
+              />
             ))
           )}
         </div>
@@ -1424,10 +1433,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
               </h2>
             </CardHeader>
             <CardBody className="pt-0">
-              <p className="mb-3 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-                Deleting a team removes memberships, announcements, and linked
-                team targets.
-              </p>
               <Button
                 size="sm"
                 variant="secondary"
@@ -1452,10 +1457,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
           value={inviteUser}
           onChange={(e) => setInviteUser(e.target.value)}
         />
-        <p className="mt-2 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
-          Invite emails a join link. Add places them on the team immediately
-          (also emails them).
-        </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Button
             className="w-full"
@@ -1510,9 +1511,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
                         <span className="block text-[var(--v2-text-sm)] font-medium text-[var(--v2-fg)]">
                           {t.label}
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-[var(--v2-fg-muted)]">
-                          {t.description}
-                        </span>
                       </button>
                     ),
                   )}
@@ -1527,15 +1525,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
             value={targetTitle}
             onChange={(e) => setTargetTitle(e.target.value)}
           />
-          <label className="flex flex-col gap-1.5 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-            Description (optional)
-            <textarea
-              value={targetDescription}
-              onChange={(e) => setTargetDescription(e.target.value)}
-              rows={2}
-              className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg)] px-3 py-2 text-[var(--v2-fg)] outline-none focus:border-[var(--v2-primary)]"
-            />
-          </label>
 
           {(targetType === "SOLVE_COUNT" ||
             targetType === "CONTEST_PARTICIPATION" ||
@@ -1625,10 +1614,6 @@ export function TeamDetailScreen({ slug }: { slug: string }) {
             value={targetDays}
             onChange={(e) => setTargetDays(e.target.value)}
           />
-          <p className="text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
-            Assigned to every active member. Synced progress updates
-            automatically except custom checklists.
-          </p>
           <Button size="sm" loading={busy} onClick={() => void createTarget()}>
             Create target
           </Button>
@@ -2003,9 +1988,11 @@ function ActivityRow({ item }: { item: TeamActivityDto }) {
 function TargetCard({
   target,
   showMembers,
+  onDelete,
 }: {
   target: TargetDto;
   showMembers?: boolean;
+  onDelete?: (t: TargetDto) => void | Promise<void>;
 }) {
   const goal =
     target.progress?.goalValue ?? target.memberProgress?.[0]?.goalValue ?? 1;
@@ -2020,7 +2007,7 @@ function TargetCard({
     <Card>
       <CardBody>
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold text-[var(--v2-fg)]">{target.title}</h3>
             <p className="font-mono text-[11px] text-[var(--v2-fg-subtle)]">
               {targetTypeMeta(target.type).label}
@@ -2028,17 +2015,24 @@ function TargetCard({
                 ? ` · ends ${new Date(target.endsAt).toLocaleDateString()}`
                 : ""}
             </p>
-            {target.description ? (
-              <p className="mt-1 text-[var(--v2-text-sm)] text-[var(--v2-fg-muted)]">
-                {target.description}
-              </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {target.progress?.isCompleted ? (
+              <span className="rounded-[var(--v2-radius-full)] bg-[var(--v2-success)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--v2-success)]">
+                Done
+              </span>
+            ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                aria-label={`Delete ${target.title}`}
+                onClick={() => void onDelete(target)}
+                className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-subtle)] transition-colors hover:bg-[var(--v2-danger)]/10 hover:text-[var(--v2-danger)]"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+              </button>
             ) : null}
           </div>
-          {target.progress?.isCompleted ? (
-            <span className="rounded-[var(--v2-radius-full)] bg-[var(--v2-success)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--v2-success)]">
-              Done
-            </span>
-          ) : null}
         </div>
 
         <div className="mt-3">

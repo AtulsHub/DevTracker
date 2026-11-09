@@ -61,11 +61,7 @@ export function SubmissionsScreen({
             <ArrowLeft className="size-3.5" aria-hidden />
             Back to Overview
           </Link>
-          <PageHeader
-            title="All submissions"
-            description="Full attempt history — accepted and wrong. Overview stats still count accepted solves only."
-            className="mb-0"
-          />
+          <PageHeader title="All submissions" className="mb-0" />
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -164,13 +160,11 @@ export function SubmissionsScreen({
             {submissions.length === 0 ? (
               <EmptyState
                 title="No submissions synced yet"
-                description="Link a platform and sync to pull attempt history. Wrong attempts sync best from Codeforces and AtCoder."
                 className="py-10"
               />
             ) : filtered.length === 0 ? (
               <EmptyState
                 title="Nothing matches these filters"
-                description="Try All, or another platform."
                 className="py-10"
               />
             ) : (

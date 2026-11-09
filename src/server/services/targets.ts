@@ -11,6 +11,7 @@ import {
   platformEnum,
   users,
   teams,
+  teamMembers,
   dailyActivity,
   platformAccounts,
   contestResults,
@@ -456,4 +457,48 @@ export async function recalculateAllActiveTargets() {
   }
 
   return active.length;
+}
+
+/**
+ * Delete a target. Personal: creator only.
+ * Team: creator, or team OWNER/ADMIN.
+ */
+export async function deleteTarget(userId: string, targetId: string) {
+  const target = await db.query.targets.findFirst({
+    where: eq(targets.id, targetId),
+    columns: {
+      id: true,
+      createdBy: true,
+      teamId: true,
+      title: true,
+    },
+  });
+  if (!target) {
+    const err = new Error("Target not found");
+    (err as Error & { status?: number }).status = 404;
+    throw err;
+  }
+
+  let allowed = target.createdBy === userId;
+  if (!allowed && target.teamId) {
+    const membership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, target.teamId),
+        eq(teamMembers.userId, userId),
+        eq(teamMembers.status, "ACTIVE"),
+      ),
+      columns: { role: true },
+    });
+    allowed =
+      membership?.role === "OWNER" || membership?.role === "ADMIN";
+  }
+
+  if (!allowed) {
+    const err = new Error("You cannot delete this target");
+    (err as Error & { status?: number }).status = 403;
+    throw err;
+  }
+
+  await db.delete(targets).where(eq(targets.id, targetId));
+  return { ok: true as const, id: targetId };
 }

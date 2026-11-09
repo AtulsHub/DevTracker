@@ -9,10 +9,7 @@ export function LeaderboardScreen({
 }) {
   return (
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
-      <PageHeader
-        title="Leaderboard"
-        description="Public grinders ranked by best rating, total solved, or a single platform."
-      />
+      <PageHeader title="Leaderboard" />
       <LeaderboardBoard people={people} />
     </div>
   );

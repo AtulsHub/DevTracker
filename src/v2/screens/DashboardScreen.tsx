@@ -217,7 +217,6 @@ function DashboardScreenInner({
         <div>
           <PageHeader
             title="Overview"
-            description="Your activity and platform progress, all in one place."
             className="mb-0"
             actions={
               <>
@@ -415,10 +414,7 @@ function DashboardScreenInner({
         ) : null}
 
         <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Activity"
-            description="Heatmap, chart, and recent accepted solves for the current filters."
-          />
+          <SectionHeading title="Activity" />
 
           <Card>
             <CardHeader className="flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -469,7 +465,6 @@ function DashboardScreenInner({
               {data.emptyInRange && yearOverride == null ? (
                 <EmptyState
                   title="No solves in this period"
-                  description="Widen the range or include more platforms."
                   action={emptyFilterActions}
                   className="py-8"
                 />
@@ -544,9 +539,6 @@ function DashboardScreenInner({
                   <h3 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
                     Recent solves
                   </h3>
-                  <p className="mt-0.5 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
-                    Accepted only · in range
-                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {compare ? (
@@ -576,7 +568,6 @@ function DashboardScreenInner({
                 {!data.hasLinked ? (
                   <EmptyState
                     title="No platforms linked"
-                    description="Connect Codeforces, LeetCode, or AtCoder to see solves here."
                     className="py-8"
                     action={
                       <Button size="sm" onClick={() => setSheetOpen(true)}>
@@ -587,7 +578,6 @@ function DashboardScreenInner({
                 ) : recentPreview.length === 0 ? (
                   <EmptyState
                     title="No accepted solves in this period"
-                    description="Nothing matched the current filters."
                     className="py-8"
                     action={emptyFilterActions}
                   />
@@ -617,10 +607,7 @@ function DashboardScreenInner({
 
         <section className="flex flex-col gap-3 border-t border-[var(--v2-border)] pt-8">
           <div className="flex items-end justify-between gap-3">
-            <SectionHeading
-              title="Connected platforms"
-              description="Ratings and sync status from your accounts"
-            />
+            <SectionHeading title="Connected platforms" />
             {platforms.length > 0 ? (
               <Button
                 variant="ghost"
@@ -636,7 +623,6 @@ function DashboardScreenInner({
             <Card>
               <EmptyState
                 title="No platforms linked"
-                description="Connect Codeforces, LeetCode, and more to populate this dashboard."
                 action={
                   <Button size="sm" onClick={() => setSheetOpen(true)}>
                     Link a platform

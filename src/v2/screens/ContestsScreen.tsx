@@ -46,7 +46,7 @@ function formatDuration(seconds: number | null | undefined) {
 export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [view, setView] = useState<View>("agenda");
+  const [view, setView] = useState<View>("calendar");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
@@ -111,7 +111,6 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
         title="Contests"
-        description="Upcoming contests across platforms, shown in your local timezone."
         actions={
           <>
             <Button
@@ -125,8 +124,8 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
             </Button>
             <div className="flex rounded-[var(--v2-radius-md)] border border-[var(--v2-border)] bg-[var(--v2-bg-elevated)] p-0.5">
               {([
-                { id: "agenda" as const, label: "Agenda" },
                 { id: "calendar" as const, label: "Calendar" },
+                { id: "agenda" as const, label: "Agenda" },
               ]).map((v) => (
                 <button
                   key={v.id}
@@ -183,7 +182,6 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
         <Card>
           <EmptyState
             title="No contests match"
-            description="Try another platform filter, or sync contests from aggregators."
             action={
               <Button
                 size="sm"
@@ -537,11 +535,7 @@ function DetailedMonthCalendar({
         </CardHeader>
         <CardBody className="space-y-2 pt-0">
           {dayContests.length === 0 ? (
-            <EmptyState
-              title="Nothing scheduled"
-              description="Pick another day on the calendar, or sync for newer contests."
-              className="py-8"
-            />
+            <EmptyState title="Nothing scheduled" className="py-8" />
           ) : (
             dayContests.map((c) => (
               <ContestRow key={`${c.platform}-${c.externalId}`} contest={c} />

@@ -17,27 +17,52 @@ export function BottomSheet({
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) {
+      wasOpen.current = false;
+      return;
+    }
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
-    const t = window.setTimeout(() => {
-      panelRef.current
-        ?.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        )
-        ?.focus();
-    }, 0);
+
+    // Focus once when the sheet opens — not on every parent re-render
+    // (inline onClose would otherwise steal focus and hide the mobile keyboard).
+    const justOpened = !wasOpen.current;
+    wasOpen.current = true;
+    let t = 0;
+    if (justOpened) {
+      t = window.setTimeout(() => {
+        const root = panelRef.current;
+        if (!root) return;
+        const active = document.activeElement;
+        if (active && root.contains(active)) return;
+        const field = root.querySelector<HTMLElement>(
+          "input, textarea, select",
+        );
+        (field ??
+          root.querySelector<HTMLElement>(
+            'button:not([aria-label="Close"]), [href], [tabindex]:not([tabindex="-1"])',
+          ))?.focus();
+      }, 0);
+    }
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
-      window.clearTimeout(t);
+      if (t) window.clearTimeout(t);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

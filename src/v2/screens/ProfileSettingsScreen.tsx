@@ -160,7 +160,6 @@ export function ProfileSettingsScreen({ user }: { user: ProfileUser }) {
     <div className="mx-auto w-full max-w-[var(--v2-content-max)] px-4 py-5 sm:px-6 sm:py-7">
       <PageHeader
         title="Edit profile"
-        description={`@${user.username} · public portfolio content only. Visibility, theme, and account prefs are in Settings.`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/u/${user.username}`}>

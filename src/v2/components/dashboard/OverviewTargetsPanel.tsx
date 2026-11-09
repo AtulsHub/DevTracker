@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/v2/components/Card";
 import { Button } from "@/v2/components/Button";
 import { Input } from "@/v2/components/Input";
@@ -15,6 +15,7 @@ import {
   type TargetTypeId,
 } from "@/v2/lib/targetTypes";
 import { cn } from "@/v2/lib/cn";
+import { useConfirm } from "@/v2/feedback/useConfirm";
 
 const CREATE_TYPES: TargetTypeId[] = [
   "SOLVE_COUNT",
@@ -50,6 +51,7 @@ export function OverviewTargetsPanel({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [type, setType] = useState<TargetTypeId>("SOLVE_COUNT");
   const [title, setTitle] = useState("");
@@ -102,33 +104,48 @@ export function OverviewTargetsPanel({
     });
   }
 
+  async function removeTarget(target: TargetDto) {
+    const ok = await confirm({
+      title: `Delete “${target.title}”?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await v2Api.deleteTarget(target.id);
+      setTargets((cur) => cur.filter((t) => t.id !== target.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete target");
+    }
+  }
+
   return (
     <>
       <section className="flex flex-col gap-3">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
-              Targets
-            </h2>
-            <p className="mt-0.5 text-[var(--v2-text-xs)] text-[var(--v2-fg-subtle)]">
-              Personal goals plus targets from teams you’ve joined
-            </p>
-          </div>
+          <h2 className="text-[var(--v2-text-sm)] font-semibold text-[var(--v2-fg)]">
+            Targets
+          </h2>
           <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
             <Plus className="size-3.5" aria-hidden />
             New target
           </Button>
         </div>
 
+        {error && !open ? (
+          <p className="text-[var(--v2-text-xs)] text-[var(--v2-danger)]">
+            {error}
+          </p>
+        ) : null}
+
         {targets.length === 0 ? (
           <Card>
             <EmptyState
               title="No targets yet"
-              description="Set a personal solve or streak goal — team targets appear here when you’re assigned."
               className="py-8"
               action={
                 <Button size="sm" onClick={() => setOpen(true)}>
-                  Create a target
+                  New target
                 </Button>
               }
             />
@@ -136,37 +153,33 @@ export function OverviewTargetsPanel({
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {personal.length > 0 ? (
-              <TargetGroup title="Personal" items={personal} />
+              <TargetGroup
+                title="Personal"
+                items={personal}
+                canDelete
+                onDelete={(t) => void removeTarget(t)}
+              />
             ) : (
               <Card>
                 <CardBody>
                   <p className="text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
-                    No personal targets yet.{" "}
-                    <button
-                      type="button"
-                      onClick={() => setOpen(true)}
-                      className="font-medium text-[var(--v2-primary)] underline-offset-2 hover:underline"
-                    >
-                      Create one
-                    </button>
+                    No personal targets
                   </p>
                 </CardBody>
               </Card>
             )}
             {team.length > 0 ? (
-              <TargetGroup title="From your teams" items={team} />
+              <TargetGroup
+                title="From your teams"
+                items={team}
+                canDelete
+                onDelete={(t) => void removeTarget(t)}
+              />
             ) : (
               <Card>
                 <CardBody>
                   <p className="text-[var(--v2-text-xs)] text-[var(--v2-fg-muted)]">
-                    No team targets assigned. Join a team or wait for a lead to
-                    set one.{" "}
-                    <Link
-                      href="/teams"
-                      className="font-medium text-[var(--v2-primary)] no-underline hover:underline"
-                    >
-                      Teams
-                    </Link>
+                    No team targets
                   </p>
                 </CardBody>
               </Card>
@@ -202,9 +215,6 @@ export function OverviewTargetsPanel({
               );
             })}
           </select>
-          <span className="text-[11px] text-[var(--v2-fg-subtle)]">
-            {meta.description}
-          </span>
         </label>
         <Input
           label="Title"
@@ -248,6 +258,7 @@ export function OverviewTargetsPanel({
           </Button>
         </div>
       </BottomSheet>
+      {confirmDialog}
     </>
   );
 }
@@ -255,9 +266,13 @@ export function OverviewTargetsPanel({
 function TargetGroup({
   title,
   items,
+  canDelete,
+  onDelete,
 }: {
   title: string;
   items: TargetDto[];
+  canDelete?: boolean;
+  onDelete?: (t: TargetDto) => void;
 }) {
   return (
     <Card>
@@ -271,19 +286,35 @@ function TargetGroup({
       </CardHeader>
       <CardBody className="space-y-3 pt-0">
         {items.map((t) => (
-          <TargetRow key={t.id} target={t} />
+          <TargetRow
+            key={t.id}
+            target={t}
+            canDelete={canDelete}
+            onDelete={onDelete}
+          />
         ))}
       </CardBody>
     </Card>
   );
 }
 
-function TargetRow({ target }: { target: TargetDto }) {
+function TargetRow({
+  target,
+  canDelete,
+  onDelete,
+}: {
+  target: TargetDto;
+  canDelete?: boolean;
+  onDelete?: (t: TargetDto) => void;
+}) {
   const current = target.progress?.currentValue ?? 0;
   const goal = Math.max(target.progress?.goalValue ?? 1, 1);
   const pct = Math.min(100, Math.round((current / goal) * 100));
   const done = Boolean(target.progress?.isCompleted);
   const typeLabel = targetTypeMeta(target.type).label;
+  const deletable =
+    canDelete &&
+    (target.source !== "team" || !target.teamId || Boolean(onDelete));
 
   return (
     <div className="rounded-[var(--v2-radius-md)] border border-[var(--v2-border-subtle)] bg-[var(--v2-bg)]/40 p-3">
@@ -311,14 +342,26 @@ function TargetRow({ target }: { target: TargetDto }) {
             ) : null}
           </p>
         </div>
-        <span
-          className={cn(
-            "shrink-0 font-mono text-[var(--v2-text-xs)] font-semibold tabular-nums",
-            done ? "text-[var(--v2-success)]" : "text-[var(--v2-fg)]",
-          )}
-        >
-          {current}/{goal}
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span
+            className={cn(
+              "font-mono text-[var(--v2-text-xs)] font-semibold tabular-nums",
+              done ? "text-[var(--v2-success)]" : "text-[var(--v2-fg)]",
+            )}
+          >
+            {current}/{goal}
+          </span>
+          {deletable && onDelete ? (
+            <button
+              type="button"
+              aria-label={`Delete ${target.title}`}
+              onClick={() => onDelete(target)}
+              className="flex size-8 items-center justify-center rounded-[var(--v2-radius-md)] text-[var(--v2-fg-subtle)] transition-colors hover:bg-[var(--v2-danger)]/10 hover:text-[var(--v2-danger)]"
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
       </div>
       <div
         className="mt-2 h-1.5 overflow-hidden rounded-[var(--v2-radius-full)] bg-[var(--v2-bg-muted)]"
