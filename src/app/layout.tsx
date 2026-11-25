@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { auth } from "@/server/auth";
 import { userIsAdmin } from "@/server/admin";
 import { AppShell } from "@/v2/shell/AppShell";
@@ -19,6 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  verification: {
+    google: "q7MjhEGbxeRfkpqJx9kH_q44_AhcBhqGTWRDAKmCx24",
+  },
   title: {
     default: "DevTrack",
     template: "%s · DevTrack",
@@ -72,6 +76,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Analytics />
         <FeedbackProviders>
           <AppShell
             signedIn={signedIn}
