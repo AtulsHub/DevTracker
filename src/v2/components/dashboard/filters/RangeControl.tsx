@@ -30,11 +30,6 @@ export function RangeControl({
   const [to, setTo] = useState(customTo ?? "");
 
   useEffect(() => {
-    setFrom(customFrom ?? "");
-    setTo(customTo ?? "");
-  }, [customFrom, customTo]);
-
-  useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Calendar,
+  CircleHelp,
   CircleUserRound,
   Compass,
   Home,
@@ -98,6 +99,7 @@ const MOBILE_ICONS: Record<string, typeof Home> = {
   home: Home,
   "/contests": Calendar,
   "/explore": Compass,
+  "/faq": CircleHelp,
   "/leaderboard": Trophy,
   "/teams": Users,
 };

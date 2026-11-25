@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/server/admin";
+import { DISCOVERABLE_PUBLIC_PEOPLE_TAG } from "@/server/cache-tags";
 import {
   moderateUserContent,
   patchAdminUser,
@@ -67,6 +69,7 @@ export async function PATCH(
         clearHeadline,
       });
     }
+    revalidateTag(DISCOVERABLE_PUBLIC_PEOPLE_TAG, { expire: 0 });
     return NextResponse.json({ ok: true, user });
   } catch (e) {
     return NextResponse.json(

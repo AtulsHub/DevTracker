@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { auth } from "@/server/auth";
-import { userIsAdmin } from "@/server/admin";
 import { AppShell } from "@/v2/shell/AppShell";
 import { FeedbackProviders } from "@/v2/feedback/FeedbackProviders";
 import "./globals.css";
@@ -21,7 +20,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   verification: {
-    google: "q7MjhEGbxeRfkpqJx9kH_q44_AhcBhqGTWRDAKmCx24",
+    google: [
+      "q7MjhEGbxeRfkpqJx9kH_q44_AhcBhqGTWRDAKmCx24",
+      "jQ63Cw2pIeL1eie5dPU9NscL7Qw-_yiNM3BYM5gfbT4",
+    ],
   },
   title: {
     default: "DevTrack",
@@ -62,7 +64,7 @@ export default async function RootLayout({
 }) {
   const session = await auth();
   const signedIn = !!session?.user?.id;
-  const isAdmin = signedIn ? await userIsAdmin(session.user.id) : false;
+  const isAdmin = Boolean(session?.user?.isAdmin);
 
   return (
     <html lang="en" suppressHydrationWarning>

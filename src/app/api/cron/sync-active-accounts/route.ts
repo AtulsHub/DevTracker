@@ -6,6 +6,7 @@
  */
 import { NextResponse } from "next/server";
 import { env } from "@/env";
+import { isAuthorizedCronRequest } from "@/server/auth/cron";
 import { db } from "@/server/db";
 import { platformAccounts } from "@/server/db/schema";
 import { lt, and, ne, or, isNull, sql } from "drizzle-orm";
@@ -15,12 +16,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel Pro allows up to 300s
 
 export async function GET(req: Request) {
-  // Verify cron secret
-  const authHeader = req.headers.get("authorization");
-  if (
-    env.CRON_SECRET &&
-    authHeader !== `Bearer ${env.CRON_SECRET}`
-  ) {
+  if (!isAuthorizedCronRequest(req, env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: https://devtrack.example.invalid
+      AUTH_SECRET: ci-only-not-a-real-secret-value-for-builds
+      AUTH_URL: https://devtrack.example.invalid
+      CRON_SECRET: ci-only-cron-secret-for-builds
+      DATABASE_URL: postgresql://test:test@localhost:5432/devtrack
+      DATABASE_URL_UNPOOLED: postgresql://test:test@localhost:5432/devtrack
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

@@ -3,10 +3,12 @@
  * PATCH /api/users/me — update profile fields shown on public profiles.
  */
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import { DISCOVERABLE_PUBLIC_PEOPLE_TAG } from "@/server/cache-tags";
 import { users } from "@/server/db/schema";
 
 const optionalUrl = z
@@ -199,6 +201,7 @@ export async function PATCH(req: Request) {
       .where(eq(users.id, session.user.id))
       .returning(PROFILE_COLUMNS);
 
+    revalidateTag(DISCOVERABLE_PUBLIC_PEOPLE_TAG, { expire: 0 });
     return NextResponse.json({ ok: true, user });
   } catch (err: unknown) {
     console.error("[PATCH /api/users/me] Error:", err);

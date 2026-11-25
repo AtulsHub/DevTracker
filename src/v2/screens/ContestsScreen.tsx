@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -58,6 +58,7 @@ function formatCountdown(startsAt: string | Date) {
 export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [now, setNow] = useState(() => Date.now());
   const [view, setView] = useState<View>("calendar");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [upcomingOnly, setUpcomingOnly] = useState(true);
@@ -70,6 +71,11 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   );
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function refresh() {
     setRefreshing(true);
@@ -97,7 +103,6 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
   );
 
   const filtered = useMemo(() => {
-    const now = Date.now();
     return contests
       .filter((c) => practicePlatforms.has(c.platform))
       .filter((c) =>
@@ -110,7 +115,7 @@ export function ContestsScreen({ contests }: { contests: ContestDto[] }) {
         (a, b) =>
           new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
       );
-  }, [contests, platformFilter, practicePlatforms, upcomingOnly]);
+  }, [contests, now, platformFilter, practicePlatforms, upcomingOnly]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, ContestDto[]>();

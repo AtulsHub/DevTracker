@@ -45,6 +45,7 @@ export function FilterBar({
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <RangeControl
+            key={`${api.filters.customFrom ?? ""}:${api.filters.customTo ?? ""}`}
             range={api.filters.range}
             customFrom={api.filters.customFrom}
             customTo={api.filters.customTo}

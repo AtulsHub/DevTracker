@@ -4,6 +4,7 @@
  */
 import { NextResponse } from "next/server";
 import { env } from "@/env";
+import { isAuthorizedCronRequest } from "@/server/auth/cron";
 import { db } from "@/server/db";
 import { platformAccounts, syncRuns } from "@/server/db/schema";
 import { lt, and, ne, or, isNull, sql } from "drizzle-orm";
@@ -16,12 +17,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (env.CRON_SECRET && authHeader !== `Bearer ${env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(req, env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const results: Record<string, unknown> = {};
+  const failures: string[] = [];
 
   // 1) Sync stale / never-synced accounts (batch for daily budget)
   try {
@@ -56,10 +57,13 @@ export async function GET(req: Request) {
       synced,
       errors: syncErrors.length ? syncErrors : undefined,
     };
+    failures.push(...syncErrors.map((error) => `sync: ${error}`));
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     results.sync = {
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
+    failures.push(`sync: ${message}`);
   }
 
   // 2) Contests
@@ -70,10 +74,13 @@ export async function GET(req: Request) {
       sources: contests.sources,
       errors: contests.errors.length ? contests.errors : undefined,
     };
+    failures.push(...contests.errors.map((error) => `contests: ${error}`));
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     results.contests = {
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
+    failures.push(`contests: ${message}`);
   }
 
   // 3) Target progress
@@ -82,18 +89,22 @@ export async function GET(req: Request) {
       recalculated: await recalculateAllActiveTargets(),
     };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     results.targets = {
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
+    failures.push(`targets: ${message}`);
   }
 
   // 4) In-app contest reminders
   try {
     results.reminders = await dispatchContestReminders();
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     results.reminders = {
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
+    failures.push(`reminders: ${message}`);
   }
 
   // 5) Cleanup old sync runs
@@ -105,14 +116,20 @@ export async function GET(req: Request) {
       .returning({ id: syncRuns.id });
     results.cleanup = { deleted: deleted.length };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     results.cleanup = {
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
+    failures.push(`cleanup: ${message}`);
   }
 
-  return NextResponse.json({
-    ok: true,
-    results,
-    timestamp: new Date().toISOString(),
-  });
+  return NextResponse.json(
+    {
+      ok: failures.length === 0,
+      results,
+      errors: failures.length ? failures : undefined,
+      timestamp: new Date().toISOString(),
+    },
+    { status: failures.length ? 500 : 200 },
+  );
 }

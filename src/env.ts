@@ -5,6 +5,17 @@
  */
 import { z } from "zod";
 
+function isLocalUrl(value: string) {
+  const hostname = new URL(value).hostname;
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "[::1]"
+  );
+}
+
 const envSchema = z.object({
   // ── Database ────────────────────────────────────────────────────────────────
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
@@ -58,6 +69,32 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+}).superRefine((values, ctx) => {
+  if (values.NODE_ENV !== "production") return;
+
+  if (!values.CRON_SECRET) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["CRON_SECRET"],
+      message: "CRON_SECRET is required in production",
+    });
+  }
+
+  if (isLocalUrl(values.APP_URL)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["APP_URL"],
+      message: "APP_URL must point to the deployed site in production",
+    });
+  }
+
+  if (values.AUTH_URL && isLocalUrl(values.AUTH_URL)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["AUTH_URL"],
+      message: "AUTH_URL must point to the deployed site in production",
+    });
+  }
 });
 
 type Env = z.infer<typeof envSchema>;

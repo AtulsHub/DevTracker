@@ -6,6 +6,7 @@ import type { ContestDto } from "@/v2/lib/api";
 import { MARKETING_NAV, SITE_SOCIAL } from "@/v2/lib/site";
 import { BrandLogo } from "@/v2/components/Brand";
 import { LeaderboardBoard } from "@/v2/components/LeaderboardBoard";
+import { FaqSection } from "@/v2/components/FaqSection";
 import type { LeaderboardPerson } from "@/v2/lib/queries";
 
 const syne = Syne({
@@ -194,6 +195,14 @@ export function LandingScreen({
         </div>
       </section>
 
+      {/* ── FAQ: common setup questions ── */}
+      <section
+        id="faq"
+        className="border-t border-[var(--land-line)] bg-[var(--land-bg)]"
+      >
+        <FaqSection limit={5} />
+      </section>
+
       {/* ── Close CTA ── */}
       <section className="relative overflow-hidden bg-[var(--land-band)] text-[var(--land-band-fg)]">
         <div
@@ -293,6 +302,7 @@ export function LandingScreen({
                         href: l.href,
                         label: l.label,
                       })),
+                      { href: "/privacy", label: "Privacy" },
                     ].map((l) => (
                       <li key={l.href}>
                         <Link

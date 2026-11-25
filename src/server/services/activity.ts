@@ -560,10 +560,13 @@ export async function getAcceptedSolveDetails(
   }));
 }
 
-export async function getTotalSolved(userId: string): Promise<number> {
+export async function getTotalSolved(
+  userId: string,
+  platformStats?: Awaited<ReturnType<typeof getPlatformStats>>,
+): Promise<number> {
   // Sum per-platform stats so LeetCode reported totals are included even when
   // public APIs only synced a truncated submission list.
-  const stats = await getPlatformStats(userId);
+  const stats = platformStats ?? (await getPlatformStats(userId));
   if (stats.length > 0) {
     return stats.reduce((sum, s) => sum + s.solvedCount, 0);
   }

@@ -3,14 +3,14 @@
  */
 import { NextResponse } from "next/server";
 import { env } from "@/env";
+import { isAuthorizedCronRequest } from "@/server/auth/cron";
 import { recalculateAllActiveTargets } from "@/server/services/targets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (env.CRON_SECRET && authHeader !== `Bearer ${env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(req, env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

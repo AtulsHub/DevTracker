@@ -25,7 +25,11 @@ export function AppShell({
   const pathname = usePathname();
   // Marketing pages use GuestShell (Home / socials / profile) even when signed in.
   const showMarketingChrome =
-    !signedIn || pathname === "/" || pathname === "/landing";
+    !signedIn ||
+    pathname === "/" ||
+    pathname === "/landing" ||
+    pathname === "/faq" ||
+    pathname === "/privacy";
 
   if (showMarketingChrome) {
     return (

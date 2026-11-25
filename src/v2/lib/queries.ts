@@ -2,6 +2,8 @@
  * Server-side data loaders for v2 screens (uses existing Drizzle services).
  */
 import { db } from "@/server/db";
+import { unstable_cache } from "next/cache";
+import { DISCOVERABLE_PUBLIC_PEOPLE_TAG } from "@/server/cache-tags";
 import { users, platformAccounts } from "@/server/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import {
@@ -31,8 +33,14 @@ export { getAllSubmissions };
  * path — that made `/` take multi-seconds. Cron `/api/cron/refresh-contests`
  * owns refreshes.
  */
+const getCachedUpcomingContests = unstable_cache(
+  async (days: number) => getUpcomingContests(undefined, days),
+  ["upcoming-contests"],
+  { revalidate: 60, tags: ["upcoming-contests"] },
+);
+
 export async function loadUpcomingContests(days = 30) {
-  return getUpcomingContests(undefined, days).catch(() => []);
+  return getCachedUpcomingContests(days).catch(() => []);
 }
 
 /** Manual/scripts only — pages should not call this. */
@@ -46,6 +54,10 @@ export async function ensureContestsLoaded() {
 
 export async function loadDashboardData(userId: string) {
   const today = todayLocalDateStr();
+  const platformsPromise = getPlatformStats(userId);
+  const totalSolvedPromise = platformsPromise.then((platforms) =>
+    getTotalSolved(userId, platforms),
+  );
   const [
     heatmapSeries,
     streak,
@@ -58,10 +70,10 @@ export async function loadDashboardData(userId: string) {
   ] = await Promise.all([
     getHeatmapByPlatform(userId),
     getStreak(userId),
-    getPlatformStats(userId),
+    platformsPromise,
     getDailyActivity(userId, today),
     getRecentSolves(userId, 80, "accepted"),
-    getTotalSolved(userId),
+    totalSolvedPromise,
     getOverviewTargets(userId),
     getAcceptedSolveDetails(userId),
   ]);
@@ -82,56 +94,130 @@ export async function loadDashboardData(userId: string) {
   };
 }
 
+export async function loadHomeData(userId: string) {
+  const platformsPromise = getPlatformStats(userId);
+  const totalSolvedPromise = platformsPromise.then((platforms) =>
+    getTotalSolved(userId, platforms),
+  );
+  const [streak, platforms, todayActivity, totalSolved, overviewTargets] =
+    await Promise.all([
+      getStreak(userId),
+      platformsPromise,
+      getDailyActivity(userId, todayLocalDateStr()),
+      totalSolvedPromise,
+      getOverviewTargets(userId),
+    ]);
+
+  return {
+    streak,
+    platforms,
+    todaySolved: todayActivity.solvedCount,
+    totalSolved,
+    overviewTargets,
+  };
+}
+
+type DiscoverablePublicPerson = {
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  headline: string | null;
+  location: string | null;
+  college: string | null;
+  skills: string | null;
+  platforms: Array<{
+    platform: string;
+    handle: string;
+    currentRating: number | null;
+    maxRating: number | null;
+  }>;
+  totalSolved: number;
+};
+
+const loadDiscoverablePublicPeople = unstable_cache(
+  async (): Promise<DiscoverablePublicPerson[]> => {
+    const publicUsers = await db.query.users.findMany({
+      where: and(
+        eq(users.profileVisibility, "PUBLIC"),
+        eq(users.discoverable, true),
+      ),
+      columns: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        headline: true,
+        location: true,
+        college: true,
+        skills: true,
+      },
+    });
+
+    const candidates = publicUsers.filter(
+      (u): u is typeof u & { username: string } =>
+        !!u.username && !isPlaceholderUsername(u.username),
+    );
+    if (candidates.length === 0) return [];
+
+    const ids = candidates.map((u) => u.id);
+    const [accounts, solvedByUser] = await Promise.all([
+      db.query.platformAccounts.findMany({
+        where: inArray(platformAccounts.userId, ids),
+        columns: {
+          userId: true,
+          platform: true,
+          handle: true,
+          currentRating: true,
+          maxRating: true,
+        },
+      }),
+      getTotalSolvedByUserIds(ids),
+    ]);
+
+    const accountsByUser = new Map<
+      string,
+      DiscoverablePublicPerson["platforms"]
+    >();
+    for (const account of accounts) {
+      const list = accountsByUser.get(account.userId) ?? [];
+      list.push({
+        platform: account.platform,
+        handle: account.handle,
+        currentRating: account.currentRating,
+        maxRating: account.maxRating,
+      });
+      accountsByUser.set(account.userId, list);
+    }
+
+    return candidates.map((user) => ({
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      headline: user.headline,
+      location: user.location,
+      college: user.college,
+      skills: user.skills,
+      platforms: accountsByUser.get(user.id) ?? [],
+      totalSolved: solvedByUser.get(user.id) ?? 0,
+    }));
+  },
+  ["discoverable-public-people-v1"],
+  { revalidate: 60, tags: [DISCOVERABLE_PUBLIC_PEOPLE_TAG] },
+);
+
 /**
  * Featured list for landing/home — same solved totals as Explore / public profiles.
  */
 export async function loadFeaturedUsers(limit = 8) {
   const take = Math.min(limit, 24);
-  // Rank among all discoverable public profiles (small hobby-scale set).
-  const publicUsers = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      headline: users.headline,
-    })
-    .from(users)
-    .where(
-      and(
-        eq(users.profileVisibility, "PUBLIC"),
-        eq(users.discoverable, true),
-      ),
-    );
-
-  const candidates = publicUsers.filter(
-    (u): u is typeof u & { username: string } =>
-      !!u.username && !isPlaceholderUsername(u.username),
-  );
-  if (candidates.length === 0) return [];
-
-  const ids = candidates.map((u) => u.id);
-  const [accounts, solvedByUser] = await Promise.all([
-    db.query.platformAccounts.findMany({
-      where: inArray(platformAccounts.userId, ids),
-      columns: { userId: true, platform: true },
-    }),
-    getTotalSolvedByUserIds(ids),
-  ]);
-
-  const platformsByUser = new Map<string, string[]>();
-  for (const a of accounts) {
-    const list = platformsByUser.get(a.userId) ?? [];
-    list.push(a.platform);
-    platformsByUser.set(a.userId, list);
-  }
-
-  return candidates
-    .map((u) => ({
-      username: u.username,
-      displayName: u.displayName,
-      headline: u.headline,
-      platforms: platformsByUser.get(u.id) ?? [],
-      totalSolved: solvedByUser.get(u.id) ?? 0,
+  const people = await loadDiscoverablePublicPeople();
+  return [...people]
+    .map((user) => ({
+      username: user.username,
+      displayName: user.displayName,
+      headline: user.headline,
+      platforms: user.platforms.map((account) => account.platform),
+      totalSolved: user.totalSolved,
     }))
     .sort((a, b) => {
       if (b.totalSolved !== a.totalSolved) return b.totalSolved - a.totalSolved;
@@ -142,73 +228,27 @@ export async function loadFeaturedUsers(limit = 8) {
 
 export async function loadExploreUsers(limit = 24) {
   const take = Math.min(limit, 48);
-  const publicUsers = await db.query.users.findMany({
-    where: and(
-      eq(users.profileVisibility, "PUBLIC"),
-      eq(users.discoverable, true),
-    ),
-    columns: {
-      id: true,
-      username: true,
-      displayName: true,
-      avatarUrl: true,
-      headline: true,
-      location: true,
-      college: true,
-      skills: true,
-      profileVisibility: true,
-    },
-  });
-
-  const candidates = publicUsers.filter(
-    (u): u is typeof u & { username: string } =>
-      !!u.username && !isPlaceholderUsername(u.username),
-  );
-  if (candidates.length === 0) return [];
-
-  const ids = candidates.map((u) => u.id);
-  const [accounts, solvedByUser] = await Promise.all([
-    db.query.platformAccounts.findMany({
-      where: inArray(platformAccounts.userId, ids),
-      columns: {
-        userId: true,
-        platform: true,
-        currentRating: true,
-      },
-    }),
-    getTotalSolvedByUserIds(ids),
-  ]);
-
-  const accountsByUser = new Map<string, typeof accounts>();
-  for (const a of accounts) {
-    const list = accountsByUser.get(a.userId) ?? [];
-    list.push(a);
-    accountsByUser.set(a.userId, list);
-  }
-
-  const result = [];
-  for (const u of candidates) {
-    const userAccounts = accountsByUser.get(u.id) ?? [];
-    // Match public profile “Best rating” (highest currentRating across platforms).
-    const maxRating = userAccounts.reduce(
-      (best, a) => Math.max(best, a.currentRating ?? 0),
-      0,
-    );
-    result.push({
-      username: u.username,
-      displayName: u.displayName,
-      avatarUrl: u.avatarUrl,
-      headline: u.headline,
-      location: u.location,
-      college: u.college,
-      skills: u.skills,
-      profileVisibility: u.profileVisibility,
-      platforms: userAccounts.map((a) => a.platform),
-      totalSolved: solvedByUser.get(u.id) ?? 0,
-      maxRating: maxRating || null,
-    });
-  }
-  return result.sort((a, b) => b.totalSolved - a.totalSolved).slice(0, take);
+  const people = await loadDiscoverablePublicPeople();
+  return [...people]
+    .map((user) => ({
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      headline: user.headline,
+      location: user.location,
+      college: user.college,
+      skills: user.skills,
+      profileVisibility: "PUBLIC",
+      platforms: user.platforms.map((account) => account.platform),
+      totalSolved: user.totalSolved,
+      maxRating:
+        user.platforms.reduce(
+          (best, account) => Math.max(best, account.currentRating ?? 0),
+          0,
+        ) || null,
+    }))
+    .sort((a, b) => b.totalSolved - a.totalSolved)
+    .slice(0, take);
 }
 
 export async function loadPublicProfile(
@@ -331,78 +371,45 @@ export async function loadLeaderboardPeople(
   limit = 100,
 ): Promise<LeaderboardPerson[]> {
   const take = Math.min(limit, 200);
-  const publicUsers = await db.query.users.findMany({
-    where: and(
-      eq(users.profileVisibility, "PUBLIC"),
-      eq(users.discoverable, true),
-    ),
-    columns: {
-      id: true,
-      username: true,
-      displayName: true,
-      avatarUrl: true,
-      headline: true,
-    },
-  });
-
-  const candidates = publicUsers.filter(
-    (u): u is typeof u & { username: string } =>
-      !!u.username && !isPlaceholderUsername(u.username),
-  );
-  if (candidates.length === 0) return [];
-
-  const ids = candidates.map((u) => u.id);
-  const [accounts, solvedByUser] = await Promise.all([
-    db.query.platformAccounts.findMany({
-      where: inArray(platformAccounts.userId, ids),
-      columns: {
-        userId: true,
-        platform: true,
-        handle: true,
-        currentRating: true,
-        maxRating: true,
-      },
-    }),
-    getTotalSolvedByUserIds(ids),
-  ]);
-
-  const accountsByUser = new Map<string, typeof accounts>();
-  for (const a of accounts) {
-    const list = accountsByUser.get(a.userId) ?? [];
-    list.push(a);
-    accountsByUser.set(a.userId, list);
-  }
-
+  const peopleData = await loadDiscoverablePublicPeople();
   const people: LeaderboardPerson[] = [];
-  for (const u of candidates) {
-    const userAccounts = accountsByUser.get(u.id) ?? [];
+  for (const user of peopleData) {
     const byPlatform: LeaderboardPerson["byPlatform"] = {};
     let bestRating = 0;
-    for (const a of userAccounts) {
-      const rating = Math.max(a.currentRating ?? 0, a.maxRating ?? 0);
-      if (rating <= 0 && !a.handle) continue;
+    for (const account of user.platforms) {
+      const rating = Math.max(
+        account.currentRating ?? 0,
+        account.maxRating ?? 0,
+      );
+      if (rating <= 0 && !account.handle) continue;
       if (rating > 0) {
-        byPlatform[a.platform] = {
-          rating: a.currentRating && a.currentRating > 0 ? a.currentRating : rating,
-          peak: a.maxRating && a.maxRating > 0 ? a.maxRating : null,
-          handle: a.handle,
+        byPlatform[account.platform] = {
+          rating:
+            account.currentRating && account.currentRating > 0
+              ? account.currentRating
+              : rating,
+          peak:
+            account.maxRating && account.maxRating > 0
+              ? account.maxRating
+              : null,
+          handle: account.handle,
         };
         bestRating = Math.max(bestRating, rating);
-      } else if (a.handle) {
+      } else if (account.handle) {
         // Linked but unrated — still useful for solved board context
-        byPlatform[a.platform] = {
+        byPlatform[account.platform] = {
           rating: 0,
           peak: null,
-          handle: a.handle,
+          handle: account.handle,
         };
       }
     }
     people.push({
-      username: u.username,
-      displayName: u.displayName,
-      avatarUrl: u.avatarUrl,
-      headline: u.headline,
-      totalSolved: solvedByUser.get(u.id) ?? 0,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      headline: user.headline,
+      totalSolved: user.totalSolved,
       bestRating,
       byPlatform,
     });

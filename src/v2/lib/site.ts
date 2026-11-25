@@ -23,6 +23,7 @@ export type MarketingNavItem = {
 export const MARKETING_NAV: MarketingNavItem[] = [
   { href: "/contests", label: "Contests", match: ["/contests"] },
   { href: "/explore", label: "Explore", match: ["/explore", "/u/"] },
+  { href: "/faq", label: "FAQ", match: ["/faq"] },
   { href: "/teams", label: "Teams", match: ["/teams"] },
   { href: "/leaderboard", label: "Leaderboard", match: ["/leaderboard"] },
 ];
@@ -83,6 +84,7 @@ export const SITE_FOOTER_LINKS = [
   { href: "/explore", label: "Explore" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/teams", label: "Teams" },
+  { href: "/privacy", label: "Privacy" },
   { href: "/sign-in", label: "Sign in" },
   { href: "/sign-up", label: "Sign up" },
 ] as const;

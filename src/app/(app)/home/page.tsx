@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { HomeScreen } from "@/v2/screens/HomeScreen";
 import {
-  loadDashboardData,
+  loadHomeData,
   loadFeaturedUsers,
   loadUpcomingContests,
 } from "@/v2/lib/queries";
@@ -23,7 +23,7 @@ export default async function HomeFeedPage() {
   const [contests, featured, dash] = await Promise.all([
     loadUpcomingContests(21),
     loadFeaturedUsers(8),
-    loadDashboardData(session.user.id),
+    loadHomeData(session.user.id),
   ]);
 
   const serialized = contests.map((c) => ({
